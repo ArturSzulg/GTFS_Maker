@@ -26,6 +26,12 @@ namespace Parser_GTFS
             path = fileSavingPath + @"\stop_times.txt";
             WriteStopTimesToFile();
         }
+        public Stop_time(string fileSavingPath)
+        {
+            // TO DO think about more clever solution
+            path = fileSavingPath + @"\stop_times.txt";
+            GenerateStopTimesFile();
+        }
 
         public bool GenerateStopTimesFile()
         {

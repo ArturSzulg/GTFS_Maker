@@ -26,6 +26,12 @@ namespace Parser_GTFS
             path = fileSavingPath + @"\routes.txt";
             WriteRouteToFile();
         }
+        public Route(string fileSavingPath)
+        {
+            // TO DO think about more clever solution
+            path = fileSavingPath + @"\routes.txt";
+            GenerateRoutesFile();
+        }
 
         public bool GenerateRoutesFile()
         {

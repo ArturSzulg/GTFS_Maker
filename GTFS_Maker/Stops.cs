@@ -26,6 +26,12 @@ namespace Parser_GTFS
             path = fileSavingPath + @"\stops.txt";
             WriteStopToFile();
         }
+        public Stop(string fileSavingPath)
+        {
+            // TO DO think about more clever solution
+            path = fileSavingPath + @"\stops.txt";
+            GenerateStopsFile();
+        }
 
         public bool GenerateStopsFile()
         {
@@ -51,20 +57,17 @@ namespace Parser_GTFS
 
         public void WriteStopToFile()
         {
-            //if (!(File.Exists(path)))
-           // {
-            if (!GenerateStopsFile())
+            if (!(File.Exists(path)))
             {
-                Console.WriteLine("Error, cannot make Stops file");
-            }
-            //}
-            else
-            { 
-                using (System.IO.StreamWriter sw = new System.IO.StreamWriter(path, true))
+                if (!GenerateStopsFile())
                 {
-                    string text = (stop_id + stop_code + stop_name + stop_lat + stop_lon);
-                    sw.WriteLine(text);
+                    Console.WriteLine("Error, cannot make Stops file");
                 }
+            }
+            using (System.IO.StreamWriter sw = new System.IO.StreamWriter(path, true))
+            {
+                string text = (stop_id + stop_code + stop_name + stop_lat + stop_lon);
+                sw.WriteLine(text);
             }
         }
     }

@@ -30,15 +30,19 @@ namespace GTFS_Maker
         public string stopsFileExtension;
         public string timetableFilePath;
         public string timetableFileExtension = "xslx";
+        public string typeOfRoute;
         public Dictionary<string, string> servicesDictionary;
+        public Dictionary<string, string> routesDictionary;
         public List<string> noMatchServices;
-
+        public Dictionary<string, string> routesSigns;
         public MainWindow()
         {
             actualWindow = this;
             InitializeComponent();
             currentDirectory = Directory.GetCurrentDirectory();
             servicesDictionary = new Dictionary<string, string> { };
+            routesDictionary = new Dictionary<string, string> { };
+            routesSigns = new Dictionary<string, string> { {"Tram","0" }, { "Metro", "1" }, { "Rail", "2" }, { "Bus", "3" } };
             noMatchServices = new List<string> { };
             ServicesListBox.Items.Clear();
             DispatcherTimer timer = new DispatcherTimer(new TimeSpan(0, 0, 1), DispatcherPriority.Normal, delegate
@@ -69,6 +73,11 @@ namespace GTFS_Maker
         public bool IsServicesDictioranyContainingValue(string askingValue)
         {
             return (servicesDictionary.ContainsValue(askingValue));
+        }
+
+        public bool IsDictioranyContainingKey(Dictionary<string,string> dictionary, string askingKey)
+        {
+            return (dictionary.ContainsKey(askingKey));
         }
 
         private void ExitButton_Click(object sender, RoutedEventArgs e) => this.Close();
@@ -270,14 +279,32 @@ namespace GTFS_Maker
 
         }
 
+        private void CheckBoxClicked(object sender, RoutedEventArgs e)
+        {
+            Tram.IsChecked = Bus.IsChecked = Metro.IsChecked = Rail.IsChecked = false;
+            CheckBox checkBoxHandler = sender as CheckBox;
+            checkBoxHandler.IsChecked = true;
+            routesSigns.TryGetValue(checkBoxHandler.Name, out typeOfRoute);
+            if (typeOfRoute == null)
+            {
+                Interfejs.Message successMessage = new Interfejs.Message(this, "Problem", "Błąd z rozpoznaniem rodzaju transportu");
+                successMessage.Owner = this;
+                successMessage.Show();
+                successMessage.Topmost = true;
+                GenerateGTFS.IsEnabled = true;
+            }
+        }
+
         private void GenerateGTFS_Click(object sender, RoutedEventArgs e)
         {
             // TO DO
-            // Make Agency
+            Agency agency = new Agency(currentDirectory + @"\GTFS");
             Program.MakeAgencyTXT();
             // Make Routes
-            // Make Stops 
             // Make Trips n StopTimes
+            // Info ze ok i czyszczenie :)
         }
+
+        
     }
 }

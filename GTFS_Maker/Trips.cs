@@ -27,6 +27,12 @@ namespace Parser_GTFS
             path = fileSavingPath + @"\trips.txt";
             WriteTripToFile();
         }
+        public Trip(string fileSavingPath)
+        {
+            // TO DO think about more clever solution
+            path = fileSavingPath + @"\trips.txt";
+            GenerateTripsFile();
+        }
 
         public bool GenerateTripsFile()
         {

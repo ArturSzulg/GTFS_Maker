@@ -159,51 +159,7 @@ namespace Parser_GTFS
         }
 
 
-        private static void MakeRoutesTXT()
-        {
 
-            for (int i = 1; i < 47; i++)
-            {
-                //exeption names: Linia 26 27 29;Linia S1;Linia S2
-                using (ExcelPackage xlPackage = new ExcelPackage(new FileInfo(@"C:\Users\Tunio\Desktop\Parser_GTFS\Parser\Parser_GTFS_Oswiecim\Oswiecim\Szkolne\Linia " + i.ToString() + ".xlsx")))
-                {
-                    if (xlPackage.Workbook.Worksheets.Count != 0)
-                    {
-                        var myWorksheet = xlPackage.Workbook.Worksheets.First();
-                        var routeRow = myWorksheet.Cells[1, 1].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
-                        string fullRouteName = routeRow.ElementAt(0);
-                        fullRouteName = fullRouteName.Remove(0, 9);
-                        string routeID = fullRouteName.Split(' ')[0];
-                        fullRouteName = fullRouteName.Remove(0, (1 + routeID.Length));
-                        if (fullRouteName[0] == ' ') fullRouteName = fullRouteName.Remove(0, 1);
-                        fullRouteName = fullRouteName.Replace('–', '-');
-                        fullRouteName = fullRouteName.Split('-')[0] + "-" + fullRouteName.Split('-').Last();
-                        Route routeHandler = new Route(routeID, "0", routeID, fullRouteName, "3", savingPath);
-                    }
-                }
-            }
-
-            List<string> exeptionalFilesNames = new List<string> { "26 27 29", "S1", "S2" };
-            foreach (string fileName in exeptionalFilesNames)
-            {
-                using (ExcelPackage xlPackage = new ExcelPackage(new FileInfo(@"C:\Users\Tunio\Desktop\Parser_GTFS\Parser\Parser_GTFS_Oswiecim\Oswiecim\Szkolne\Linia " + fileName + ".xlsx")))
-                {
-                    if (xlPackage.Workbook.Worksheets.Count != 0)
-                    {
-                        var myWorksheet = xlPackage.Workbook.Worksheets.First();
-                        var routeRow = myWorksheet.Cells[1, 1].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
-                        string fullRouteName = routeRow.ElementAt(0);
-                        fullRouteName = fullRouteName.Remove(0, 9);
-                        string routeID = fullRouteName.Split(' ')[0];
-                        fullRouteName = fullRouteName.Remove(0, (1 + routeID.Length));
-                        if (fullRouteName[0] == ' ') fullRouteName = fullRouteName.Remove(0, 1);
-                        fullRouteName = fullRouteName.Replace('–', '-');
-                        fullRouteName = fullRouteName.Split('-')[0] + "-" + fullRouteName.Split('-').Last();
-                        Route routeHandler = new Route(routeID, "0", routeID, fullRouteName, "3", savingPath);
-                    }
-                }
-            }
-        }
 
         private static void MakeTripsNStopTimes() // When xlsx contains empty cells, you need to change them from nothing to fe. "_", if not you ll be skipping them automatically
         {
@@ -331,6 +287,13 @@ namespace Parser_GTFS
         }
 
 
+        private static void MakeRoutesTXT()
+        {
+            foreach (var route in mainWindowHandler.routesDictionary)
+            {
+                Route routeHandler = new Route(route.Key, "0", route.Key, route.Value, mainWindowHandler.typeOfRoute, savingPath);
+            }
+        }
 
         private static void MakeStopsTXT(List<string> stopNames, List<string> stopLat, List<string> stopLon)
         {
@@ -474,9 +437,18 @@ namespace Parser_GTFS
             else return true;
         }
 
+        private static void TryToAddNewServiceToDictionary(string key, string value)
+        {
+            if (!mainWindowHandler.IsDictioranyContainingKey(mainWindowHandler.routesDictionary, key))
+            {
+                mainWindowHandler.routesDictionary.Add(key, value);
+            }
+        }
+
         public static bool CheckStopsMatching(MainWindow mainWindow)
         {
             mainWindowHandler = mainWindow;
+            mainWindowHandler.servicesDictionary.Clear();
             List<string> stopNamesFromTimetable = new List<string> { };
             List<string> stopNamesFromStops = new List<string> { };
             List<string> stopLatFromStops = new List<string> { };
@@ -489,7 +461,11 @@ namespace Parser_GTFS
                     {
                         var myWorksheet = xlPackage.Workbook.Worksheets.ElementAt(sheet);
                         if(myWorksheet.Name != "Stops" && myWorksheet.Name != "Services")
-                        { 
+                        {
+                            string lineNumber = myWorksheet.Name.Split(' ')[0];
+                            var route = myWorksheet.Cells[1, 1].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
+                            TryToAddNewServiceToDictionary(lineNumber, route.First());
+
                             var totalRows = myWorksheet.Dimension.End.Row;
                             int kolumnaPrzystanek = 1;
                             var namesRow = myWorksheet.Cells[3, kolumnaPrzystanek, totalRows, kolumnaPrzystanek].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
@@ -554,6 +530,9 @@ namespace Parser_GTFS
             }
             if (AreAllStopsMatched(stopNamesFromTimetable, stopNamesFromStops))
             {
+                Route route = new Route(savingPath);
+                MakeRoutesTXT();
+                Stop stop = new Stop(savingPath);
                 MakeStopsTXT(stopNamesFromStops,stopLatFromStops,stopLonFromStops);
                 return true;
             }
