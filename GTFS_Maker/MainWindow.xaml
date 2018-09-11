@@ -1,0 +1,51 @@
+﻿<Window x:Class="GTFS_Maker.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d" Height="600" Width="900" Foreground="White" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" WindowStyle="None">
+    <Grid x:Name="FullGrid">
+        <Grid x:Name="TopGrid" VerticalAlignment="Top" Height="80" Background="#FF5C99D6" MouseDown="TopGrid_MouseDown">
+            <TextBlock x:Name="CurentTimeTextBlock" Height="30" HorizontalAlignment="Left" Text="11:11" FontSize="24" Margin="20,25"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <materialDesign:PopupBox PlacementMode="BottomAndAlignRightEdges" StaysOpen="False" Margin="20">
+                    <StackPanel Width="180" Background="White">
+                        <Button x:Name="HelpXLSXButton" Content="Struktura rozkładów" Click="HelpXLSXButton_Click"/>
+                        <Button x:Name="MinimizeButton" Content="Minimalizuj" Click="MinimizeButton_Click"/>
+                        <Button Content="Exit" Click="ExitButton_Click"/>
+                    </StackPanel>
+                </materialDesign:PopupBox>
+            </StackPanel>
+            <TextBlock x:Name="MainTopTextBlock" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="26" Text="GTFS maker"/>
+        </Grid>
+        <Grid x:Name="MainGrid" HorizontalAlignment="Right" VerticalAlignment="Bottom" Height="520" Width="900"  Background="#00000000">
+            <TextBox x:Name="CityName" GotFocus="HideTextFromTextBox" HorizontalAlignment="Left" MaxLength="30" MinWidth="80" VerticalAlignment="Top" FontSize="20" Text="Nazwa miasta" Foreground="Black" Margin="20,10,0,0" />
+            <TextBox x:Name="Agency" GotFocus="HideTextFromTextBox" HorizontalAlignment="Center" MaxLength="30" MinWidth="80" VerticalAlignment="Top" FontSize="20" Text="Nazwa zarządcy" Foreground="Black" Margin="0,10,0,0"/>
+            <TextBox x:Name="Site" GotFocus="HideTextFromTextBox" HorizontalAlignment="Right" MaxLength="50" MinWidth="80" VerticalAlignment="Top" FontSize="20" Text="Adres strony zarządcy" Foreground="Black" Margin="0,10,20,0"/>
+            <Grid x:Name="Stops" Margin="20,80,20,10">
+                <TextBlock x:Name="StopsPath" Text="Plik zawierający przystanki i współrzędne w formacie xlsx lub txt" Foreground="Black" FontSize="15" Margin="110,10,190,399"/>
+                <Button x:Name="ChooseStopsFile" IsEnabled="False" Margin="685,10,95,0" VerticalAlignment="Top" Height="21" Content="Wybierz" Click="ChooseStopsFile_Click"/>
+                <TextBlock x:Name="TimetablePath" Text="Plik z ustrukturyzowanymi rozkładami jazdy - Wiecej info w menu" Foreground="Black" FontSize="15" Margin="110,50,190,358"/>
+                <Button x:Name="ChooseTimetableFile" IsEnabled="False" Margin="685,50,95,0" VerticalAlignment="Top" Height="22" Content="Wybierz" Click="ChooseTimetableFile_Click"/>
+                <Button x:Name="StopsMatchingFlag" Visibility="Hidden" Background="Green" Margin="310,87,315,0" VerticalAlignment="Top" Height="30" Content="Przystanki się pokrywają" Click="StopsMatchingFlag_Click"/>
+                <TextBlock Text="Rodzaje kursowania:" Foreground="Black" FontSize="20" Margin="110,122,370,284"/>
+                <ListBox x:Name="ServicesListBox" FontSize="20" Margin="110,150,370,129">
+                    <ListBoxItem Content="R = Robocze"/>
+                    <ListBoxItem Content="R = Robocze"/>
+                    <ListBoxItem Content="R = Robocze"/>
+                    <ListBoxItem Content="W = Weekendy i Święta"/>
+                    <ListBoxItem Content="S = Szkolne"/>
+                </ListBox>
+                <TextBlock Text="Oznaczenie:" Foreground="Black" FontSize="20" Margin="515,181,235,223"/>
+                <TextBox x:Name="ServiceSymbol" MaxLength="6" Text="Symbol" GotFocus="HideTextFromTextBox" HorizontalAlignment="Left" FontSize="18" Margin="625,181,0,217"/>
+                <TextBlock Text="Pełna nazwa:" Foreground="Black" FontSize="20" Margin="515,215,230,191"/>
+                <TextBox x:Name="ServiceFullName" MaxLength="35" Text="Rozwinięcie" GotFocus="HideTextFromTextBox" HorizontalAlignment="Left" FontSize="18" Margin="635,215,0,182" Width="100"/>
+                <Button x:Name="AddNewService" IsEnabled="False" Margin="515,252,125,0" VerticalAlignment="Top" Height="25" Content="Dodaj nowy rodzaj kursowania" Click="AddNewService_Click"/>
+            </Grid>
+            <Button x:Name="GenerateGTFS" IsEnabled="False" Margin="175,440,175,0" VerticalAlignment="Top" Height="40" Content="Rozpocznij generowanie plików GTFS" Click="GenerateGTFS_Click"/>
+
+        </Grid>
+
+    </Grid>
+</Window>
