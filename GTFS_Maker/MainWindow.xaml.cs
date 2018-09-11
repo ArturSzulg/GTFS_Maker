@@ -303,6 +303,8 @@ namespace GTFS_Maker
             // Make Routes
             // Make Trips n StopTimes
             // Info ze ok i czyszczenie :)
+            ///////////////////////////////////////////////////////////////////////////             
+            Program.MakeTripsNStopTimes();
         }
 
         

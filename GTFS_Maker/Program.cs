@@ -83,7 +83,7 @@ namespace Parser_GTFS
             return normalizedName;
         }
 
-        private static void AddUniqeStopToList(List<string> uniqeStops, string stopName)
+        private static void AddUniqeToList(List<string> uniqeStops, string stopName)
         {
             if (!uniqeStops.Contains(stopName))
             {
@@ -131,7 +131,7 @@ namespace Parser_GTFS
 
         private static string GetStopIDFromName(string stopName)
         {
-            using (var reader = new StreamReader(@"C:\Users\Tunio\Desktop\Myszków\GTFS\stops.txt"))
+            using (var reader = new StreamReader(savingPath + @"\stops.txt"))
             {
                 List<string> IDs = new List<string>();
                 List<string> Names = new List<string>();
@@ -157,135 +157,6 @@ namespace Parser_GTFS
                 return stopID;
             }
         }
-
-
-
-
-        private static void MakeTripsNStopTimes() // When xlsx contains empty cells, you need to change them from nothing to fe. "_", if not you ll be skipping them automatically
-        {
-            for (int file =1; file < 9; file++)
-            {
-                using (ExcelPackage xlPackage = new ExcelPackage(new FileInfo(@"C:\Users\Tunio\Desktop\Myszków\LINIA "+file.ToString()+".xlsx")))
-                {
-
-                    int numberOfWorksheets = xlPackage.Workbook.Worksheets.Count();
-                    for (int sheet = 0; sheet < numberOfWorksheets; sheet++) 
-                    {
-                        Console.Clear();
-                        Console.WriteLine("Aktualnie przerobiłem " + (sheet+1).ToString() + " z " + (numberOfWorksheets).ToString() + " arkuszy" + ", plik" + file.ToString());
-
-                        var myWorksheet = xlPackage.Workbook.Worksheets.ElementAt(sheet); 
-                        var totalRows = myWorksheet.Dimension.End.Row;
-                        var totalColumns = myWorksheet.Dimension.End.Column;
-
-                        List<string> sheetStopsNameTabe = new List<string> { };//
-                        List<string> sheetStopsIDsTabe = new List<string> { };
-                        string lineNumber = myWorksheet.Name.Remove(1);
-
-                        var namesRow = myWorksheet.Cells[4, 1, totalRows, 1].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
-                        // sprawdz czy nie ma pustych
-                        for (int i = 0; i < totalRows - 3; i++)
-                        {
-                            sheetStopsNameTabe.Add(namesRow.ElementAt(i));//
-                            sheetStopsIDsTabe.Add(GetStopIDFromName(namesRow.ElementAt(i).ToString()));
-                        }
-                        string headsign = "HEADSIGN";
-                        int tripsIndex = 1;
-
-                        for (int column = 2; column <= totalColumns; column++) // od 2 col włącznie
-                        {
-                            var serviceRows = myWorksheet.Cells[2, column, 2, totalColumns].Select(c => c.Value == null ? string.Empty : c.Value.ToString()); // odwrotnie bo bierze B2:B34
-                            var serviceRow = myWorksheet.Cells[2, column].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
-                            var directionRow = myWorksheet.Cells[3, column].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
-                            // R Robocze WS Weekendy i Święta
-                            string serviceType = serviceRow.First();
-                            if (serviceType == "R") serviceType = "Robocze";
-                            else if (serviceType == "") serviceType = "Codziennie";
-                            else if (serviceType == "SN" || serviceType == "S N") serviceType = "Soboty i Niedziele";
-                            else if (serviceType == "RN") serviceType = "Szkolne";
-                            else if (serviceType == "S") serviceType = "Soboty";
-                            else if (serviceType == "N") serviceType = "Niedziele";
-                            else if (serviceType == "R S") serviceType = "Robocze i Soboty";
-                            else if (serviceType == "S N DZ") serviceType = "Soboty i Niedziele do 30.09";
-                            else if (serviceType == "N DZ") serviceType = "Niedziele do 30.09";
-                            else if (serviceType == "R S DZ") serviceType = "Robocze i Soboty do 30.09";
-                            else if (serviceType == "DZ") serviceType = "Codziennie do 30.09";
-                            else serviceType = "Weekendy i Święta";
-                            // stop_times
-                            if (directionRow.First() == "down")
-                            {
-                                var scheduleRows = myWorksheet.Cells[4, column, totalRows, column].Select(c => c.Value == null ? string.Empty : c.Value.ToString()); // od 2 col włącznie
-                                for (int rowNumber = totalRows - 4; rowNumber >= 0; rowNumber--) // spr stacje docelową (jak są dziury)
-                                {
-                                    if (scheduleRows.ElementAt(rowNumber) != " " && scheduleRows.ElementAt(rowNumber) != "")
-                                    {
-                                        headsign = namesRow.ElementAt(rowNumber);
-                                        break;
-                                    }
-                                }
-                                int sequence = 0;
-
-                                for (int rowNumber = 0; rowNumber < totalRows - 3; rowNumber++)
-                                {
-                                    //string tppp = scheduleRows.ElementAt(rowNumber); // breakpointa i spr jak wyglada czas...
-                                    if (scheduleRows.ElementAt(rowNumber) != " " && scheduleRows.ElementAt(rowNumber) != "") //pozostalość po braku wartości w srodku rozkladu
-                                    {
-                                        string time = scheduleRows.ElementAt(rowNumber);
-                                        //string time = scheduleRows.ElementAt(rowNumber).Remove(0, 11);
-                                        if (time.Length == 4) time = "0" + time;
-                                        time = time + ":00";
-                                        time = time.Replace('.', ':');
-                                        time = time.Replace(',', ':');
-                                        time = time.Replace(' ', ':');
-                                        time = time.Replace('-', ':');
-                                        time = time.Replace("::", ":");
-                                        Stop_time stopTimeHandler = new Stop_time(tripsIndex.ToString() + lineNumber + "M" + lineNumber + sheet.ToString() + lineNumber + lineNumber + file, time, time, sheetStopsIDsTabe[rowNumber], sequence.ToString(), savingPath);
-                                        sequence++;
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                var scheduleRows = myWorksheet.Cells[4, column, totalRows, column].Select(c => c.Value == null ? string.Empty : c.Value.ToString()); // od 2 col włącznie
-                                for (int rowNumber = 0; rowNumber < totalRows - 3; rowNumber++) // spr stacje docelową (jak są dziury)
-                                {
-                                    if (scheduleRows.ElementAt(rowNumber) != " " && scheduleRows.ElementAt(rowNumber) != "")
-                                    {
-                                        headsign = namesRow.ElementAt(rowNumber);
-                                        break;
-                                    }
-                                }
-                                int sequence = 0;
-
-                                for (int rowNumber = totalRows - 4; rowNumber >= 0 ; rowNumber--)
-                                {
-                                    //string tppp = scheduleRows.ElementAt(rowNumber); // breakpointa i spr jak wyglada czas...
-                                    if (scheduleRows.ElementAt(rowNumber) != " " && scheduleRows.ElementAt(rowNumber) != "") //pozostalość po braku wartości w srodku rozkladu
-                                    {
-                                        string time = scheduleRows.ElementAt(rowNumber);
-                                        //string time = scheduleRows.ElementAt(rowNumber).Remove(0, 11);
-                                        if (time.Length == 4) time = "0" + time;
-                                        time = time + ":00";
-                                        time = time.Replace('.', ':');
-                                        time = time.Replace(',', ':');
-                                        time = time.Replace(' ', ':');
-                                        time = time.Replace('-', ':');
-                                        time = time.Replace("::", ":");
-                                        Stop_time stopTimeHandler = new Stop_time(tripsIndex.ToString() + lineNumber + "M" + lineNumber + sheet.ToString() + lineNumber + lineNumber + file, time, time, sheetStopsIDsTabe[rowNumber], sequence.ToString(), savingPath);
-                                        sequence++;
-                                    }
-                                }
-                            }
-                            // stop_times
-                            Trip tripHandler = new Trip(lineNumber, serviceType, tripsIndex.ToString() + lineNumber + "M" + lineNumber + sheet.ToString() + lineNumber + lineNumber + file, headsign, savingPath);
-                            tripsIndex++;
-                            
-                        }
-                    }
-                }
-            }
-        }
-
 
         private static void MakeRoutesTXT()
         {
@@ -472,7 +343,7 @@ namespace Parser_GTFS
                             int indexer = 0;
                             while (!(indexer > (totalRows - 3)))
                             {
-                                AddUniqeStopToList(stopNamesFromTimetable, namesRow.ElementAt(indexer));
+                                AddUniqeToList(stopNamesFromTimetable, namesRow.ElementAt(indexer));
                                 indexer++;
                             }
                         }
@@ -498,12 +369,12 @@ namespace Parser_GTFS
                             int indexer = 0;
                             while (!(indexer > (totalRows - 2)))
                             {
-                                AddUniqeStopToList(stopNamesFromStops, namesRow.ElementAt(indexer));
+                                AddUniqeToList(stopNamesFromStops, namesRow.ElementAt(indexer));
                                 double lat, lon;
                                 if (Double.TryParse(LatRows.ElementAt(indexer), out lat) && (Double.TryParse(LonRows.ElementAt(indexer), out lon)))
                                 {
-                                    AddUniqeStopToList(stopLatFromStops, lat.ToString().Replace(',', '.'));
-                                    AddUniqeStopToList(stopLonFromStops, lon.ToString().Replace(',', '.'));
+                                    AddUniqeToList(stopLatFromStops, lat.ToString().Replace(',', '.'));
+                                    AddUniqeToList(stopLonFromStops, lon.ToString().Replace(',', '.'));
                                 }
                                 indexer++;
                             }
@@ -562,7 +433,7 @@ namespace Parser_GTFS
                             int indexer = 0;
                             while (!(indexer > (totalColumns - 2)))
                             {
-                                AddUniqeStopToList(servicesSymbolsFromTimetable, namesRow.ElementAt(indexer));
+                                AddUniqeToList(servicesSymbolsFromTimetable, namesRow.ElementAt(indexer));
                                 indexer++;
                             }
                         }
@@ -574,8 +445,8 @@ namespace Parser_GTFS
                             int indexer = 0;
                             while (!(indexer > (totalRows - 2)))
                             {
-                                AddUniqeStopToList(servicesSymbolsFromSheet, symbolsRow.ElementAt(indexer));
-                                AddUniqeStopToList(servicesMeaning, meanigRows.ElementAt(indexer));
+                                AddUniqeToList(servicesSymbolsFromSheet, symbolsRow.ElementAt(indexer));
+                                AddUniqeToList(servicesMeaning, meanigRows.ElementAt(indexer));
                                 indexer++;
                             }
                         }
@@ -608,56 +479,109 @@ namespace Parser_GTFS
             }
         }
 
-
-
-
-
-
-
-
-        private static void MakeSlupki()
+        public static void MakeTripsNStopTimes() // When xlsx contains empty cells, you need to change them from nothing to fe. "_", if not you ll be skipping them automatically
         {
-            using (var reader = new StreamReader(@"C:\Users\Tunio\Desktop\Myszków\slupki.txt"))
+            using (ExcelPackage xlPackage = new ExcelPackage(new FileInfo(mainWindowHandler.timetableFilePath)))
             {
-                List<string> Names = new List<string>();
-                List<string> Lon = new List<string>();
-                List<string> Lat = new List<string>();
-                while (!reader.EndOfStream)
+                int numberOfWorksheets = xlPackage.Workbook.Worksheets.Count();
+                for (int sheet = 0; sheet < numberOfWorksheets; sheet++)
                 {
-                    var line = reader.ReadLine();
-                    var values = line.Split(';');
-                    Names.Add(NormalizeStopsName(values[1]));
-                    Lat.Add(values[2]);
-                    Lon.Add(values[3]);
-                }
-                string recentName = "tmp";
-                for (int i =0; i < Names.Count; i++)
-                {
-                    string next = "Brak";
-                    if (i != (Names.Count - 1))
+                    var myWorksheet = xlPackage.Workbook.Worksheets.ElementAt(sheet);
+                    if (myWorksheet.Name != "Services")
                     {
-                        next = Names[i + 1];
-                    }
-                    else
-                    {
-                        next = "lastt";
-                    }
-                    if (Names[i] == next) // powtorka
-                    {
-                        double newLat = (Double.Parse(Lat[i].Replace('.', ',').Replace("\"", string.Empty)) + Double.Parse(Lat[i+1].Replace('.', ',').Replace("\"", string.Empty))) / 2;
-                        double newLon = (Double.Parse(Lon[i].Replace('.', ',').Replace("\"", string.Empty)) + Double.Parse(Lon[i+1].Replace('.', ',').Replace("\"", string.Empty))) / 2;
-                        WriteStopToFile(savingPath + "\\slupki_JAR.txt", "\"" + Names[i] + "\"", newLat.ToString().Replace(',','.'), newLon.ToString().Replace(',', '.'));
-                        i++;
-                    }
-                    else
-                    {
-                        WriteStopToFile(savingPath + "\\slupki_JAR.txt", "\"" + Names[i] + "\"", Lat[i].Replace("\"", string.Empty), Lon[i].Replace("\"", string.Empty));
-                    }
-                    recentName = Names[i];
+                        var totalRows = myWorksheet.Dimension.End.Row;
+                        var totalColumns = myWorksheet.Dimension.End.Column;
 
+                        List<string> sheetStopsNameTabe = new List<string> { };
+                        List<string> sheetStopsIDsTabe = new List<string> { };
+                        List<int> repeatedStationArrivalDeparture = new List<int> { };
+
+                        string lineNumber = myWorksheet.Name.Split(' ')[0];
+
+                        var namesRow = myWorksheet.Cells[3, 1, totalRows, 1].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
+                        // sprawdz czy nie ma pustych
+                        string recentStation = "NotThisSation";
+                        for (int i = 0; i < totalRows - 3; i++)
+                        {
+                            if (namesRow.ElementAt(i) == recentStation)
+                            {
+                                repeatedStationArrivalDeparture.Add(i - 1); // chcemy tego 1szego itd
+                            }
+                            recentStation = namesRow.ElementAt(i);
+                            sheetStopsNameTabe.Add(namesRow.ElementAt(i));
+                            sheetStopsIDsTabe.Add(GetStopIDFromName(namesRow.ElementAt(i).ToString()));
+                        }
+                        string headsign = "HEADSIGN";
+                        int tripsIndex = 1;
+                        string serviceType;
+                        for (int column = 2; column <= totalColumns; column++) // od 2 col włącznie
+                        {
+                            var serviceRows = myWorksheet.Cells[2, 2, 2, totalColumns].Select(c => c.Value == null ? string.Empty : c.Value.ToString()); // odwrotnie bo bierze B2:B34
+                            mainWindowHandler.servicesDictionary.TryGetValue((serviceRows.ElementAt(column - 2)), out serviceType);
+
+                            // stop_times
+                            var scheduleRows = myWorksheet.Cells[3, column, totalRows, column].Select(c => c.Value == null ? string.Empty : c.Value.ToString()); // od 2 col włącznie
+                            for (int rowNumber = totalRows - 3; rowNumber >= 0; rowNumber--) // spr stacje docelową (jak są dziury)
+                            {
+                                if (scheduleRows.ElementAt(rowNumber) != "-" && scheduleRows.ElementAt(rowNumber) != "")
+                                {
+                                    headsign = namesRow.ElementAt(rowNumber);
+                                    break;
+                                }
+                            }
+                            int sequence = 0;
+
+                            for (int rowNumber = 0; rowNumber < totalRows - 3; rowNumber++)
+                            {
+                                //string tppp = scheduleRows.ElementAt(rowNumber); // breakpointa i spr jak wyglada czas...
+                                if (scheduleRows.ElementAt(rowNumber) != "-" && scheduleRows.ElementAt(rowNumber) != "") //pozostalość po braku wartości w srodku rozkladu
+                                {
+                                    if (repeatedStationArrivalDeparture.Count == 0)
+                                    {
+                                        string time = scheduleRows.ElementAt(rowNumber).Remove(0, 11); // trzeba sprawdzac czy nie jest po 24:00:00 jak cos to pierwsza to 25:00:00 itd...
+                                        Stop_time stopTimeHandler = new Stop_time(tripsIndex.ToString() + lineNumber + "M" + lineNumber + sheet.ToString() + lineNumber + lineNumber, time, time, sheetStopsIDsTabe[rowNumber], sequence.ToString(), savingPath);
+                                        sequence++;
+                                    }
+                                    else
+                                    {
+                                        bool notThisIndex = true;
+                                        foreach (int rep in repeatedStationArrivalDeparture)
+                                        {
+                                            
+                                            if (rowNumber == rep && (scheduleRows.ElementAt(rowNumber + 1) != "" ) && (scheduleRows.ElementAt(rowNumber + 1) != "-"))
+                                            {
+                                                //string tmp = scheduleRows.ElementAt(rowNumber + 1);
+                                                //jesli powt sie przystanek czyli rózny odjazd i przyjazd
+                                                string arrivalTime = scheduleRows.ElementAt(rowNumber).Remove(0, 11);// trzeba sprawdzac czy nie jest po 24:00:00 jak cos to pierwsza to 25:00:00 itd...
+                                                string departureTime = scheduleRows.ElementAt(rowNumber + 1).Remove(0, 11);// trzeba sprawdzac czy nie jest po 24:00:00 jak cos to pierwsza to 25:00:00 itd...
+                                                Stop_time stopTimeHandler = new Stop_time(tripsIndex.ToString() + lineNumber + mainWindowHandler.CityName.Text[0] + lineNumber + sheet.ToString() + lineNumber + lineNumber, arrivalTime, departureTime, sheetStopsIDsTabe[rowNumber], sequence.ToString(), savingPath);
+                                                sequence++;
+                                                rowNumber++;
+                                                notThisIndex = false;
+                                                break;
+                                            }
+                                        }
+                                        if (notThisIndex)
+                                        {
+                                            string time = scheduleRows.ElementAt(rowNumber).Remove(0, 11); // trzeba sprawdzac czy nie jest po 24:00:00 jak cos to pierwsza to 25:00:00 itd...
+                                            Stop_time stopTimeHandler = new Stop_time(tripsIndex.ToString() + lineNumber + mainWindowHandler.CityName.Text[0] + lineNumber + sheet.ToString() + lineNumber + lineNumber, time, time, sheetStopsIDsTabe[rowNumber], sequence.ToString(), savingPath);
+                                            sequence++;
+                                        }
+                                    }
+                                }
+                            }
+                            // stop_times
+                            Trip tripHandler = new Trip(lineNumber, serviceType, tripsIndex.ToString() + lineNumber + mainWindowHandler.CityName.Text[0] + lineNumber + sheet.ToString() + lineNumber + lineNumber, headsign, savingPath);
+                            tripsIndex++;
+                        }
+                    }
                 }
             }
         }
+
+
+
+
 
         private static void SwapStopsLatnLon()
         {
@@ -790,6 +714,107 @@ namespace Parser_GTFS
         
     }
 }
+
+//for (int rowNumber = 0; rowNumber < totalRows - 3; rowNumber++)
+//{
+//    //string tppp = scheduleRows.ElementAt(rowNumber); // breakpointa i spr jak wyglada czas...
+//    if (scheduleRows.ElementAt(rowNumber) != "-" && scheduleRows.ElementAt(rowNumber) != "") //pozostalość po braku wartości w srodku rozkladu
+//    {
+//        string time = scheduleRows.ElementAt(rowNumber);
+//        //string time = scheduleRows.ElementAt(rowNumber).Remove(0, 11);
+//        // TO DO 23 -> 24 
+//        Stop_time stopTimeHandler = new Stop_time(tripsIndex.ToString() + lineNumber + "M" + lineNumber + sheet.ToString() + lineNumber + lineNumber, time, time, sheetStopsIDsTabe[rowNumber], sequence.ToString(), savingPath);
+//        sequence++;
+//    }
+//}
+//// stop_times
+//Trip tripHandler = new Trip(lineNumber, serviceType, tripsIndex.ToString() + lineNumber + "M" + lineNumber + sheet.ToString() + lineNumber + lineNumber, headsign, savingPath);
+//tripsIndex++;
+
+//using (ExcelPackage xlPackage = new ExcelPackage(new FileInfo(@"C:\Users\Tunio\Desktop\Parser_GTFS\Mlawa\Mlawa_rozklad.xlsx")))
+//{
+
+//    int numberOfWorksheets = xlPackage.Workbook.Worksheets.Count();
+//    for (int sheet = 0; sheet < numberOfWorksheets - 1; sheet++) 
+//    {
+//        var myWorksheet = xlPackage.Workbook.Worksheets.ElementAt(sheet); 
+//        var totalRows = myWorksheet.Dimension.End.Row;
+//        var totalColumns = myWorksheet.Dimension.End.Column;
+//        string lineNumber = myWorksheet.Name.Remove(myWorksheet.Name.IndexOf("_"));
+//        string worksheetName = myWorksheet.Name.Replace("_", string.Empty);
+//        List<int> repeatedStationArrivalDeparture = new List<int> { };
+
+//        var namesRow = myWorksheet.Cells[2, 1, totalRows, 1].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
+//        string recentStation = "NotThisSation";
+//        for (int i = 0; i < totalRows - 1; i++)
+//        {
+//            if ( namesRow.ElementAt(i) == recentStation)
+//            {
+//                repeatedStationArrivalDeparture.Add(i-1); // chcemy tego 1szego itd
+//            }
+//            recentStation = namesRow.ElementAt(i);
+//            sheetStopsNameTabe.Add(namesRow.ElementAt(i));//
+//            sheetStopsIDsTabe.Add(GetStopIDFromName(namesRow.ElementAt(i).ToString()));
+//        }
+//        string headsign = namesRow.ElementAt(totalRows - 2).ToString();
+//        int tripsIndex = 1;
+
+//        for (int column = 2; column <= totalColumns; column++) // od 2 col włącznie
+//        {
+//            string serviceType = "Unknown";
+
+//            var serviceTypeRows = myWorksheet.Cells[1, 1, 1, totalColumns].Select(c => c.Value == null ? string.Empty : c.Value.ToString()); // olny 1 wiersz bez 1szej komorki
+//            if (serviceTypeRows.ElementAt(column-1).Contains("R")) { serviceType = "Robocze"; }
+//            else if (serviceTypeRows.ElementAt(column - 1).Contains("C")) { serviceType = "Codziennie"; }
+
+//            // stop_times
+//            var scheduleRows = myWorksheet.Cells[2, column, totalRows, column].Select(c => c.Value == null ? string.Empty : c.Value.ToString()); // od 2 col włącznie
+//            int sequence = 0;
+
+//            for (int rowNumber = 0; rowNumber < totalRows - 1; rowNumber++)
+//            {
+//                //string tppp = scheduleRows.ElementAt(rowNumber); // breakpointa i spr jak wyglada czas...
+//                //if (scheduleRows.ElementAt(rowNumber) != " ") pozostalość po braku wartości w srodku rozkladu
+//                //{
+//                if (repeatedStationArrivalDeparture.Count == 0)
+//                {
+//                    string time = scheduleRows.ElementAt(rowNumber).Remove(0, 11); // trzeba sprawdzac czy nie jest po 24:00:00 jak cos to pierwsza to 25:00:00 itd...
+//                    Stop_time stopTimeHandler = new Stop_time(tripsIndex.ToString() + worksheetName + worksheetName, time, time, sheetStopsIDsTabe[rowNumber], sequence.ToString(), savingPath);
+//                    sequence++;
+//                }
+//                else
+//                {
+//                    bool notThisIndex = true;
+//                    foreach (int rep in repeatedStationArrivalDeparture)
+//                    {
+//                        if (rowNumber == rep)
+//                        {
+//                            //jesli powt sie przystanek czyli rózny odjazd i przyjazd
+//                            string arrivalTime = scheduleRows.ElementAt(rowNumber).Remove(0, 11);// trzeba sprawdzac czy nie jest po 24:00:00 jak cos to pierwsza to 25:00:00 itd...
+//                            string departureTime = scheduleRows.ElementAt(rowNumber + 1).Remove(0, 11);// trzeba sprawdzac czy nie jest po 24:00:00 jak cos to pierwsza to 25:00:00 itd...
+//                            Stop_time stopTimeHandler = new Stop_time(tripsIndex.ToString() + worksheetName + worksheetName, arrivalTime, departureTime, sheetStopsIDsTabe[rowNumber], sequence.ToString(), savingPath);
+//                            sequence++;
+//                            rowNumber++;
+//                            notThisIndex = false;
+//                            break;
+//                        }
+//                    }
+//                    if (notThisIndex)
+//                    {
+//                        string time = scheduleRows.ElementAt(rowNumber).Remove(0, 11); // trzeba sprawdzac czy nie jest po 24:00:00 jak cos to pierwsza to 25:00:00 itd...
+//                        Stop_time stopTimeHandler = new Stop_time(tripsIndex.ToString() + worksheetName + worksheetName, time, time, sheetStopsIDsTabe[rowNumber], sequence.ToString(), savingPath);
+//                        sequence++;
+//                    }
+//                }
+//                //}
+//            }
+//            // stop_times
+//            Trip tripHandler = new Trip(lineNumber, serviceType, tripsIndex.ToString() + worksheetName + worksheetName, headsign, savingPath);
+//            tripsIndex++;
+//        }
+//    }
+//}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //MakeStopsTXT();
 // Making stops.txt
