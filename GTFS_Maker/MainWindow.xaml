@@ -34,7 +34,7 @@
                 <CheckBox x:Name="Metro" Margin="730,5,115,410" Click="CheckBoxClicked"/>
                 <TextBlock x:Name="StopsPath" Text="Plik zawierający przystanki i współrzędne w formacie xlsx lub txt" Foreground="Black" FontSize="15" Margin="110,50,190,359"/>
                 <Button x:Name="ChooseStopsFile" IsEnabled="False" Margin="685,50,95,0" VerticalAlignment="Top" Height="21" Content="Wybierz" Click="ChooseStopsFile_Click"/>
-                <TextBlock x:Name="TimetablePath" Text="Plik z ustrukturyzowanymi rozkładami jazdy - Wiecej info w menu" Foreground="Black" FontSize="15" Margin="110,90,190,318"/>
+                <TextBlock x:Name="TimetablePath" Text="Plik z ustrukturyzowanymi rozkładami jazdy - Więcej info w menu" Foreground="Black" FontSize="15" Margin="110,90,190,318"/>
                 <Button x:Name="ChooseTimetableFile" IsEnabled="False" Margin="685,90,95,0" VerticalAlignment="Top" Height="22" Content="Wybierz" Click="ChooseTimetableFile_Click"/>
                 <Button x:Name="StopsMatchingFlag" Visibility="Hidden" Background="Green" Margin="310,127,315,0" VerticalAlignment="Top" Height="30" Content="Przystanki się pokrywają" Click="StopsMatchingFlag_Click"/>
                 <TextBlock Text="Rodzaje kursowania:" Foreground="Black" FontSize="20" Margin="110,162,370,244"/>

@@ -31,7 +31,7 @@ namespace GTFS_Maker
         public string timetableFilePath;
         public string timetableFileExtension = "xslx";
         public string typeOfRoute;
-        public Dictionary<string, string> servicesDictionary;
+        public Dictionary<string, string> servicesDictionary; //
         public Dictionary<string, string> routesDictionary;
         public List<string> noMatchServices;
         public Dictionary<string, string> routesSigns;
@@ -216,7 +216,7 @@ namespace GTFS_Maker
         {
             if (StopsMatchingFlag.Background == Brushes.Red)
             {
-                Interfejs.Message successMessage = new Interfejs.Message(this, "No to klops", "Pobrałem przystanki z pliku, oraz wszystkie z arkusza, niestety nie ma między nimi pełnej zgodności. Za chwilę urchomi się plik z listą niesparowanych przystanków");
+                Interfejs.Message successMessage = new Interfejs.Message(this, "No to klops", "Pobrałem przystanki z pliku, oraz wszystkie z arkusza, niestety nie ma między nimi pełnej zgodności. Za chwilę urchomi się plik z listą niesparowanych przystanków. Sprawdz też zgodność z schematem");
                 successMessage.Owner = this;
                 successMessage.Show();
                 successMessage.Topmost = true;
@@ -279,6 +279,24 @@ namespace GTFS_Maker
 
         }
 
+        private void ClearUI()
+        {
+            CityName.Text = "Nazwa miasta";
+            Agency.Text = "Nazwa zarządcy";
+            Site.Text = "Adres strony zarządcy";
+            StopsPath.Text = "Plik zawierający przystanki i współrzędne w formacie xlsx lub txt";
+            TimetablePath.Text = "Plik z ustrukturyzowanymi rozkładami jazdy - Więcej info w menu";
+            ChooseStopsFile.IsEnabled = ChooseTimetableFile.IsEnabled = AddNewService.IsEnabled = GenerateGTFS.IsEnabled = false;
+            StopsMatchingFlag.Visibility = Visibility.Hidden;
+            stopsFilePath = stopsFileExtension = timetableFilePath = typeOfRoute = null;
+            servicesDictionary.Clear();
+            routesDictionary.Clear();
+            noMatchServices.Clear();
+            routesSigns.Clear();
+            Rail.IsChecked = Metro.IsChecked = Bus.IsChecked = Tram.IsChecked = false;
+            ServicesListBox.Items.Clear();
+        }
+
         private void CheckBoxClicked(object sender, RoutedEventArgs e)
         {
             Tram.IsChecked = Bus.IsChecked = Metro.IsChecked = Rail.IsChecked = false;
@@ -297,14 +315,25 @@ namespace GTFS_Maker
 
         private void GenerateGTFS_Click(object sender, RoutedEventArgs e)
         {
-            // TO DO
             Agency agency = new Agency(currentDirectory + @"\GTFS");
             Program.MakeAgencyTXT();
-            // Make Routes
-            // Make Trips n StopTimes
-            // Info ze ok i czyszczenie :)
-            ///////////////////////////////////////////////////////////////////////////             
-            Program.MakeTripsNStopTimes();
+            Stop_time stopTime = new Stop_time(currentDirectory + @"\GTFS");
+            Trip trip = new Trip(currentDirectory + @"\GTFS");
+            if (Program.MakeTripsNStopTimes())
+            {
+                Interfejs.Message successMessage = new Interfejs.Message(this, "Gratuluję", "Udało się wytworzyć pliki GTFS. Znajdują się one w folderze GTFS, a jego lokalizacją jest folder zawierający plik z którego uruchomiony został ten program.");
+                successMessage.Owner = this;
+                successMessage.Show();
+                successMessage.Topmost = true;
+                ClearUI();
+            }
+            else
+            {
+                Interfejs.Message successMessage = new Interfejs.Message(this, "Błąd", "Nie udało się wytworzyć plików GTFS. Sprawdź zgodność Twoich plików z wymaganymi schematami. Zamknij pliki robocze z rozkładami i przystankami.");
+                successMessage.Owner = this;
+                successMessage.Show();
+                successMessage.Topmost = true;
+            }
         }
 
         
