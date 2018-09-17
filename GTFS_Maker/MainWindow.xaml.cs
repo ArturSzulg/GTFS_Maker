@@ -16,6 +16,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using System.IO.Compression;
+using OfficeOpenXml;
 
 namespace GTFS_Maker
 {
@@ -42,7 +44,11 @@ namespace GTFS_Maker
             currentDirectory = Directory.GetCurrentDirectory();
             servicesDictionary = new Dictionary<string, string> { };
             routesDictionary = new Dictionary<string, string> { };
-            routesSigns = new Dictionary<string, string> { {"Tram","0" }, { "Metro", "1" }, { "Rail", "2" }, { "Bus", "3" } };
+            routesSigns = new Dictionary<string, string> {
+                                                           { "Tram","0" }, { "Metro", "1" }, { "Rail", "2" }, { "Bus", "3" },{"Prom","4"}
+                                                           ,{"Pociąg wysokiej prędkości","101"},{"Pociąg dalekobieżny","102"},{"Pociąg międzyregionalny","103"},{"Pociąg do transportu samochodów","104"},{"Pociąg sypialny","105"},{"Pociąg regionalny","106"},{"Pociąg turystyczny","107"},{"Pociąg wahadłowy","108"},{"Pociąg podmiejski","109"},{"Trolejbus","800"},{"Statek","1000"},{"Samolot","1100"}
+                                                           ,{"Kolej miejska","400"},{"Kolej podziemna","402"},{"Kolej linowa","5"},{"Kolej gondolowa","6"},{"Kolej zębata","7"},{"Taxi","1500"},{"Taxi grupowe","1501"},{"Taxi wodne","1502"},{"Różne","1700"}
+                                                         };
             noMatchServices = new List<string> { };
             ServicesListBox.Items.Clear();
             DispatcherTimer timer = new DispatcherTimer(new TimeSpan(0, 0, 1), DispatcherPriority.Normal, delegate
@@ -52,6 +58,10 @@ namespace GTFS_Maker
                 else ChooseStopsFile.IsEnabled = GenerateGTFS.IsEnabled = false;
             }, Dispatcher);
             Directory.CreateDirectory(Directory.GetCurrentDirectory() + @"\GTFS");
+            for (int i = 4; i < routesSigns.Count; i++)
+            {
+                OtherTypes.Items.Add(routesSigns.Keys.ElementAt(i));
+            }
         }
 
         private void TopGrid_MouseDown(object sender, MouseButtonEventArgs e)
@@ -97,7 +107,7 @@ namespace GTFS_Maker
         private void ChooseStopsFile_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.InitialDirectory = currentDirectory;
+            openFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             openFileDialog.Filter = "Pliki txt|*.txt|Pliki Excel|*.xlsx|TXT lub Excel|*.txt;*.xlsx";
             openFileDialog.FilterIndex = 3;
             openFileDialog.RestoreDirectory = true;
@@ -114,7 +124,7 @@ namespace GTFS_Maker
         private void ChooseTimetableFile_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.InitialDirectory = currentDirectory;
+            openFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             openFileDialog.Filter = "Pliki Excel|*.xlsx";
             openFileDialog.FilterIndex = 1;
             openFileDialog.RestoreDirectory = true;
@@ -126,14 +136,26 @@ namespace GTFS_Maker
             }
             if (IsStopsFileAdded() && IsTimetableFileAdded())
             {
-                bool AreStopsMatched = Program.CheckStopsMatching(actualWindow);
-                ShowStopsMatching(AreStopsMatched);
-                if (AreStopsMatched)
+                try
                 {
-                    ServicesListBox.Items.Clear();
-                    ShowServicesMatching(Program.CheckServicesMatching(actualWindow));
-                    ShowServices();
+                    bool AreStopsMatched = Program.CheckStopsMatching(actualWindow);
+                    ShowStopsMatching(AreStopsMatched);
+                    if (AreStopsMatched)
+                    {
+                        ServicesListBox.Items.Clear();
+                        ShowServicesMatching(Program.CheckServicesMatching(actualWindow));
+                        ShowServices();
+                    }
                 }
+                catch
+                {
+                    Interfejs.Message successMessage = new Interfejs.Message(this, "Błąd", "Sprawdź zgodność wybranych plików z wymaganą strukturą");
+                    successMessage.Owner = this;
+                    successMessage.Show();
+                    successMessage.Topmost = true;
+                    ClearUI();
+                }
+
             }
         }
 
@@ -162,7 +184,7 @@ namespace GTFS_Maker
 
         private void HelpXLSXButton_Click(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Process.Start("Struktura_Rozkładow.xlsx");
+            System.Diagnostics.Process.Start(currentDirectory + "//Schemas//Struktura_Rozkładow.xlsx");
         }
 
         private void ShowStopsMatching(bool IsAllMatched)
@@ -216,7 +238,7 @@ namespace GTFS_Maker
         {
             if (StopsMatchingFlag.Background == Brushes.Red)
             {
-                Interfejs.Message successMessage = new Interfejs.Message(this, "No to klops", "Pobrałem przystanki z pliku, oraz wszystkie z arkusza, niestety nie ma między nimi pełnej zgodności. Za chwilę urchomi się plik z listą niesparowanych przystanków. Sprawdz też zgodność z schematem");
+                Interfejs.Message successMessage = new Interfejs.Message(this, "Ostrzeżenie", "Pobrałem przystanki z pliku, oraz wszystkie z arkusza, niestety nie ma między nimi pełnej zgodności. Za chwilę urchomi się plik z listą niesparowanych przystanków. Sprawdz też zgodność z schematem");
                 successMessage.Owner = this;
                 successMessage.Show();
                 successMessage.Topmost = true;
@@ -279,14 +301,18 @@ namespace GTFS_Maker
 
         }
 
-        private void ClearUI()
+        private void ClearUI(bool WithAgency = true)
         {
-            CityName.Text = "Nazwa miasta";
-            Agency.Text = "Nazwa zarządcy";
-            Site.Text = "Adres strony zarządcy";
+            if (WithAgency)
+            { 
+                CityName.Text = "Nazwa miasta";
+                Agency.Text = "Nazwa zarządcy";
+                Site.Text = "Adres strony zarządcy";
+            }
             StopsPath.Text = "Plik zawierający przystanki i współrzędne w formacie xlsx lub txt";
             TimetablePath.Text = "Plik z ustrukturyzowanymi rozkładami jazdy - Więcej info w menu";
-            ChooseStopsFile.IsEnabled = ChooseTimetableFile.IsEnabled = AddNewService.IsEnabled = GenerateGTFS.IsEnabled = false;
+            ChooseStopsFile.IsEnabled = !WithAgency;
+            ChooseTimetableFile.IsEnabled = AddNewService.IsEnabled = GenerateGTFS.IsEnabled = false;
             StopsMatchingFlag.Visibility = Visibility.Hidden;
             stopsFilePath = stopsFileExtension = timetableFilePath = typeOfRoute = null;
             servicesDictionary.Clear();
@@ -299,12 +325,15 @@ namespace GTFS_Maker
 
         private void CheckBoxClicked(object sender, RoutedEventArgs e)
         {
-            Tram.IsChecked = Bus.IsChecked = Metro.IsChecked = Rail.IsChecked = false;
+            Tram.IsChecked = Bus.IsChecked = Metro.IsChecked = Rail.IsChecked = Other.IsChecked = false;
             CheckBox checkBoxHandler = sender as CheckBox;
             checkBoxHandler.IsChecked = true;
-            routesSigns.TryGetValue(checkBoxHandler.Name, out typeOfRoute);
+            string selectedTypeOfRouteName = checkBoxHandler.Name;
+            if (checkBoxHandler.Name == "Other") selectedTypeOfRouteName = OtherTypes.SelectedValue.ToString();
+            routesSigns.TryGetValue(selectedTypeOfRouteName, out typeOfRoute);
             if (typeOfRoute == null)
             {
+                Tram.IsChecked = Bus.IsChecked = Metro.IsChecked = Rail.IsChecked = Other.IsChecked = false;
                 Interfejs.Message successMessage = new Interfejs.Message(this, "Problem", "Błąd z rozpoznaniem rodzaju transportu");
                 successMessage.Owner = this;
                 successMessage.Show();
@@ -321,21 +350,118 @@ namespace GTFS_Maker
             Trip trip = new Trip(currentDirectory + @"\GTFS");
             if (Program.MakeTripsNStopTimes())
             {
-                Interfejs.Message successMessage = new Interfejs.Message(this, "Gratuluję", "Udało się wytworzyć pliki GTFS. Znajdują się one w folderze GTFS, a jego lokalizacją jest folder zawierający plik z którego uruchomiony został ten program.");
-                successMessage.Owner = this;
-                successMessage.Show();
-                successMessage.Topmost = true;
-                ClearUI();
+                // TO DO 
+                // Wybierz katalog do zapisu GTFS gdzieś indziej niż GTFSowe pliki są xD
+                //ZipFile.CreateFromDirectory(currentDirectory + @"\GTFS", (currentDirectory + @"\GTFS\" + CityName.Text.ToLower() + "-" + DateTime.Now.Date.ToString().Remove(10)+".zip"));
+
+                SaveFileDialog saveFileDialog = new SaveFileDialog();
+                saveFileDialog.Filter = "Pliki ZIP|*.zip";
+                saveFileDialog.FilterIndex = 1;
+                saveFileDialog.RestoreDirectory = true;
+                saveFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                saveFileDialog.FileName = CityName.Text.ToLower() + "-" + DateTime.Now.Date.ToString().Remove(10) + ".zip";
+                saveFileDialog.DefaultExt = "zip";
+                Nullable<bool> dialogResult = saveFileDialog.ShowDialog();
+                if (dialogResult == true)
+                {
+                    try
+                    {
+                        if (File.Exists(saveFileDialog.FileName))
+                        {
+                            File.Delete(saveFileDialog.FileName);
+                        }
+                        ZipFile.CreateFromDirectory(currentDirectory + @"\GTFS", (saveFileDialog.FileName));
+                        Interfejs.Message successMessage = new Interfejs.Message(this, "Gratuluję", "Udało się pomyślnie wytworzyć pliki GTFS oraz spakować je do ZIP-a.");
+                        successMessage.Owner = this;
+                        successMessage.Show();
+                        successMessage.Topmost = true;
+                        ClearUI();
+                        System.Diagnostics.Process.Start("fv.exe", saveFileDialog.FileName);
+                    }
+                    catch
+                    {
+                        Interfejs.Message successMessage = new Interfejs.Message(this, "Błąd #02", "Nie udało się wytworzyć plików GTFS. Sprawdź zgodność Twoich plików z wymaganymi schematami. Zamknij pliki robocze z rozkładami i przystankami.");
+                        successMessage.Owner = this;
+                        successMessage.Show();
+                        successMessage.Topmost = true;
+                        ClearUI(false);
+                    }
+
+                }
             }
             else
             {
-                Interfejs.Message successMessage = new Interfejs.Message(this, "Błąd", "Nie udało się wytworzyć plików GTFS. Sprawdź zgodność Twoich plików z wymaganymi schematami. Zamknij pliki robocze z rozkładami i przystankami.");
+                Interfejs.Message successMessage = new Interfejs.Message(this, "Błąd #01", "Nie udało się wytworzyć plików GTFS. Sprawdź zgodność Twoich plików z wymaganymi schematami. Zamknij pliki robocze z rozkładami i przystankami.");
                 successMessage.Owner = this;
                 successMessage.Show();
                 successMessage.Topmost = true;
+                ClearUI(false);
+            }
+
+        }
+
+        private void HelpStopsButton_Click(object sender, RoutedEventArgs e)
+        {
+            System.Diagnostics.Process.Start( currentDirectory +"//Schemas//Struktura_Przystanków.xlsx");
+        }
+
+        private void GenerateStopsList_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            openFileDialog.Title = "Wybierz plik z którego mam pobrać przystanki";
+            openFileDialog.Filter = "Pliki Excel|*.xlsx";
+            openFileDialog.FilterIndex = 1;
+            openFileDialog.RestoreDirectory = true;
+            Nullable<bool> dialogResult = openFileDialog.ShowDialog();
+            if (dialogResult == true)
+            {
+                try
+                {
+                    Program.MakeStopsListFile(openFileDialog.FileName);
+                    Interfejs.Message successMessage = new Interfejs.Message(this, "Gratuluje", "Plik z listą przystanków został utworzony");
+                    successMessage.Owner = this;
+                    successMessage.Show();
+                    successMessage.Topmost = true;
+                }
+                catch
+                {
+                    Interfejs.Message successMessage = new Interfejs.Message(this, "Błąd #03", "Najprawopodobniej wybrany plik nie jest zgodny z wymaganą strukturą");
+                    successMessage.Owner = this;
+                    successMessage.Show();
+                    successMessage.Topmost = true;
+                }
             }
         }
 
-        
+        private void GenerateServicesList_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            openFileDialog.Title = "Wybierz plik z którego mam pobrać typy serwisów";
+            openFileDialog.Filter = "Pliki Excel|*.xlsx";
+            openFileDialog.FilterIndex = 1;
+            openFileDialog.RestoreDirectory = true;
+            Nullable<bool> dialogResult = openFileDialog.ShowDialog();
+            if (dialogResult == true)
+            {
+                try
+                {
+                    Program.MakeServicesListFile(openFileDialog.FileName);
+                    Interfejs.Message successMessage = new Interfejs.Message(this, "Gratuluje", "Plik z listą typów serwisów został utworzony");
+                    successMessage.Owner = this;
+                    successMessage.Show();
+                    successMessage.Topmost = true;
+                }
+                catch
+                {
+                    Interfejs.Message successMessage = new Interfejs.Message(this, "Błąd #04", "Najprawopodobniej wybrany plik nie jest zgodny z wymaganą strukturą");
+                    successMessage.Owner = this;
+                    successMessage.Show();
+                    successMessage.Topmost = true;
+                }
+            }
+        }
+
     }
 }

@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using CsvHelper;
 using System.Globalization;
 using GTFS_Maker;
+using Microsoft.Win32;
 
 namespace Parser_GTFS
 {
@@ -177,8 +178,16 @@ namespace Parser_GTFS
         private static bool MakeStopsTXT(List<string> stopNames, List<string> stopLat, List<string> stopLon)
         {
             try
-            { 
-                int cityIDValue = char.ConvertToUtf32(mainWindowHandler.CityName.Text.ElementAt(0).ToString(), 0) + char.ConvertToUtf32("S", 0) + char.ConvertToUtf32(mainWindowHandler.CityName.Text.ElementAt(1).ToString(), 0) + char.ConvertToUtf32(mainWindowHandler.CityName.Text.ElementAt(2).ToString(), 0); // Letters: City 1st, File 1st, City second, county 1st (PL:powiat)
+            {
+                string first,second,third;
+                first = second = third = mainWindowHandler.CityName.Text.ElementAt(0).ToString();
+                if (mainWindowHandler.CityName.Text.Length > 3)
+                {
+                    first = mainWindowHandler.CityName.Text.ElementAt(0).ToString();
+                    second = mainWindowHandler.CityName.Text.ElementAt(1).ToString();
+                    third = mainWindowHandler.CityName.Text.ElementAt(2).ToString();
+                }
+                int cityIDValue = char.ConvertToUtf32(first, 0) + char.ConvertToUtf32("S", 0) + char.ConvertToUtf32(second, 0) + char.ConvertToUtf32(third, 0); 
                 for (int row = 0; row < stopNames.Count; row++) // 1st is name line
                 {
                     int stopID = cityIDValue + row;
@@ -251,7 +260,7 @@ namespace Parser_GTFS
                 {
                     if (IsFileLocked(new FileInfo(path)))
                     {
-                        Interfejs.Message successMessage = new Interfejs.Message(mainWindowHandler, "Błąd", "Zamknij otwarty plik 'stops_noMatch.txt' masz na to kilka sekund");
+                        Interfejs.Message successMessage = new Interfejs.Message(mainWindowHandler, "Ostrzeżenie", "Zamknij otwarty plik 'stops_noMatch.txt' masz na to kilka sekund");
                         successMessage.Owner = mainWindowHandler;
                         successMessage.Show();
                         successMessage.Topmost = true;
@@ -337,6 +346,132 @@ namespace Parser_GTFS
             if (!mainWindowHandler.IsDictioranyContainingKey(mainWindowHandler.routesDictionary, key))
             {
                 mainWindowHandler.routesDictionary.Add(key, value);
+            }
+        }
+
+        public static void MakeStopsListFile(string path)
+        {
+            List<string> stopNamesFromTimetable = new List<string> { };
+            using (ExcelPackage xlPackage = new ExcelPackage(new FileInfo(path)))
+            {
+                if (xlPackage.Workbook.Worksheets.Count != 0)
+                {
+                    for (int sheet = 0; sheet < xlPackage.Workbook.Worksheets.Count; sheet++)
+                    {
+                        var myWorksheet = xlPackage.Workbook.Worksheets.ElementAt(sheet);
+                        if (myWorksheet.Name != "Stops" && myWorksheet.Name != "Services")
+                        {
+                            var totalRows = myWorksheet.Dimension.End.Row;
+                            int kolumnaPrzystanek = 1;
+                            var namesRow = myWorksheet.Cells[3, kolumnaPrzystanek, totalRows, kolumnaPrzystanek].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
+                            int indexer = 0;
+                            while (!(indexer > (totalRows - 3)))
+                            {
+                                AddUniqeToList(stopNamesFromTimetable, namesRow.ElementAt(indexer));
+                                indexer++;
+                            }
+                        }
+                    }
+                }
+            }
+            stopNamesFromTimetable.Sort();
+
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "Pliki TXT|*.txt";
+            saveFileDialog.FilterIndex = 1;
+            saveFileDialog.RestoreDirectory = true;
+            saveFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            saveFileDialog.FileName = "Lista przystanków";
+            saveFileDialog.DefaultExt = "txt";
+            Nullable<bool> dialogResult = saveFileDialog.ShowDialog();
+            if (dialogResult == true)
+            {
+                try
+                {
+                    if (File.Exists(saveFileDialog.FileName))
+                    {
+                        File.Delete(saveFileDialog.FileName);
+                    }
+                    using (FileStream fs = new FileStream(saveFileDialog.FileName, FileMode.CreateNew))
+                    {
+                        Byte[] text = new UTF8Encoding(true).GetBytes("Lista przystanków:" + Environment.NewLine);
+                        fs.Write(text, 0, text.Length);
+                        foreach (var stop in stopNamesFromTimetable)
+                        {
+                            text = new UTF8Encoding(true).GetBytes(stop.ToString() + Environment.NewLine);
+                            fs.Write(text,0,text.Length);
+                        }
+                    }
+                    System.IO.StreamWriter sw = new System.IO.StreamWriter(saveFileDialog.FileName, true);
+
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
+
+            }
+        }
+
+        public static void MakeServicesListFile(string path)
+        {
+            List<string> servicesSymbolsFromTimetable = new List<string> { };
+            using (ExcelPackage xlPackage = new ExcelPackage(new FileInfo(path)))
+            {
+                if (xlPackage.Workbook.Worksheets.Count != 0)
+                {
+                    for (int sheet = 0; sheet < xlPackage.Workbook.Worksheets.Count; sheet++)
+                    {
+                        var myWorksheet = xlPackage.Workbook.Worksheets.ElementAt(sheet);
+                        if (myWorksheet.Name != "Services")
+                        {
+                            var totalColumns = myWorksheet.Dimension.End.Column;
+                            var namesRow = myWorksheet.Cells[2, 2, 2, totalColumns].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
+                            int indexer = 0;
+                            while (!(indexer > (totalColumns - 2)))
+                            {
+                                AddUniqeToList(servicesSymbolsFromTimetable, namesRow.ElementAt(indexer));
+                                indexer++;
+                            }
+                        }
+                    }
+                }
+            }
+            servicesSymbolsFromTimetable.Sort();
+
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "Pliki TXT|*.txt";
+            saveFileDialog.FilterIndex = 1;
+            saveFileDialog.RestoreDirectory = true;
+            saveFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            saveFileDialog.FileName = "Lista typów serwisów";
+            saveFileDialog.DefaultExt = "txt";
+            Nullable<bool> dialogResult = saveFileDialog.ShowDialog();
+            if (dialogResult == true)
+            {
+                try
+                {
+                    if (File.Exists(saveFileDialog.FileName))
+                    {
+                        File.Delete(saveFileDialog.FileName);
+                    }
+                    using (FileStream fs = new FileStream(saveFileDialog.FileName, FileMode.CreateNew))
+                    {
+                        Byte[] text = new UTF8Encoding(true).GetBytes("Lista serwisów:" + Environment.NewLine);
+                        fs.Write(text, 0, text.Length);
+                        foreach (var service in servicesSymbolsFromTimetable)
+                        {
+                            text = new UTF8Encoding(true).GetBytes(service.ToString() + Environment.NewLine);
+                            fs.Write(text, 0, text.Length);
+                        }
+                    }
+                    System.IO.StreamWriter sw = new System.IO.StreamWriter(saveFileDialog.FileName, true);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
+
             }
         }
 

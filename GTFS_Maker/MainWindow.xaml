@@ -10,8 +10,9 @@
             <TextBlock x:Name="CurentTimeTextBlock" Height="30" HorizontalAlignment="Left" Text="11:11" FontSize="24" Margin="20,25"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <materialDesign:PopupBox PlacementMode="BottomAndAlignRightEdges" StaysOpen="False" Margin="20">
-                    <StackPanel Width="180" Background="White">
-                        <Button x:Name="HelpXLSXButton" Content="Struktura rozkładów" Click="HelpXLSXButton_Click"/>
+                    <StackPanel Width="210" Background="White">
+                        <Button Content="Generuj listę przystanków" Click="GenerateStopsList_Click"/>
+                        <Button Content="Generuj listę serwisów" Click="GenerateServicesList_Click"/>
                         <Button x:Name="MinimizeButton" Content="Minimalizuj" Click="MinimizeButton_Click"/>
                         <Button Content="Exit" Click="ExitButton_Click"/>
                     </StackPanel>
@@ -19,26 +20,35 @@
             </StackPanel>
             <TextBlock x:Name="MainTopTextBlock" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="26" Text="GTFS maker"/>
         </Grid>
-        <Grid x:Name="MainGrid" HorizontalAlignment="Right" VerticalAlignment="Bottom" Height="520" Width="900"  Background="#00000000">
-            <TextBox x:Name="CityName" GotFocus="HideTextFromTextBox" HorizontalAlignment="Left" MaxLength="30" MinWidth="80" VerticalAlignment="Top" FontSize="20" Text="Nazwa miasta" Foreground="Black" Margin="20,10,0,0" />
-            <TextBox x:Name="Agency" GotFocus="HideTextFromTextBox" HorizontalAlignment="Center" MaxLength="30" MinWidth="80" VerticalAlignment="Top" FontSize="20" Text="Nazwa zarządcy" Foreground="Black" Margin="0,10,0,0"/>
-            <TextBox x:Name="Site" GotFocus="HideTextFromTextBox" HorizontalAlignment="Right" MaxLength="50" MinWidth="80" VerticalAlignment="Top" FontSize="20" Text="Adres strony zarządcy" Foreground="Black" Margin="0,10,20,0"/>
+        <Grid x:Name="MainGrid" HorizontalAlignment="Right" VerticalAlignment="Bottom" Height="520" Width="900"  Background="#FFA0D5F6">
+            <TextBox x:Name="CityName" BorderThickness="0" GotFocus="HideTextFromTextBox" GotMouseCapture="HideTextFromTextBox" Background="Transparent" HorizontalAlignment="Left" MaxLength="20" MinWidth="80" VerticalAlignment="Top" FontSize="15" Text="Nazwa miasta" Foreground="Black" Margin="397,10,0,0" />
+            <TextBox x:Name="Agency" BorderThickness="0" GotFocus="HideTextFromTextBox" GotMouseCapture="HideTextFromTextBox" Background="Transparent" HorizontalAlignment="Center" MaxLength="30" MinWidth="80" VerticalAlignment="Top" FontSize="15" Text="Nazwa zarządcy" Foreground="Black" Margin="20,10,733,0"/>
+            <TextBox x:Name="Site" BorderThickness="0" GotFocus="HideTextFromTextBox" GotMouseCapture="HideTextFromTextBox" Background="Transparent" HorizontalAlignment="Right" MaxLength="40" MinWidth="80" VerticalAlignment="Top" FontSize="15" Text="Adres strony zarządcy" Foreground="Black" Margin="0,10,20,0"/>
             <Grid x:Name="Stops" Margin="20,80,20,10">
-                <TextBlock Text="Autobusy" Foreground="Black" FontSize="15" Margin="475,1,315,405"/>
-                <CheckBox x:Name="Bus" Margin="540,5,305,410" Click="CheckBoxClicked"/>
+                <ComboBox x:Name="OtherTypes" Foreground="Black" Background="#FFA0D5F6" FontSize="15" SelectedIndex="0" Margin="385,-2,385,408">
+                </ComboBox>
+                <CheckBox x:Name="Other" Margin="480,5,365,410" Click="CheckBoxClicked"/>
+                <TextBlock Text="Autobusy" Foreground="Black" FontSize="15" Margin="545,1,245,405"/>
+                <CheckBox x:Name="Bus" Margin="610,5,235,410" Click="CheckBoxClicked"/>
                 <TextBlock Text="Tramwaje" Foreground="Black" FontSize="15" Margin="110,1,685,403"/>
-                <CheckBox x:Name="Tram" Margin="175,5,670,410" Click="CheckBoxClicked"/>
-                <TextBlock Text="Kolej" Foreground="Black" FontSize="15" Margin="295,1,530,405"/>
-                <CheckBox x:Name="Rail" Margin="330,5,515,410" Click="CheckBoxClicked"/>
+                <CheckBox x:Name="Tram"  Margin="175,5,670,410" Click="CheckBoxClicked"/>
+                <TextBlock Text="Kolej" Foreground="Black" FontSize="15" Margin="275,1,550,405"/>
+                <CheckBox x:Name="Rail" Margin="310,5,535,410" Click="CheckBoxClicked"/>
                 <TextBlock Text="Metro" Foreground="Black" FontSize="15" Margin="685,1,130,402"/>
                 <CheckBox x:Name="Metro" Margin="730,5,115,410" Click="CheckBoxClicked"/>
                 <TextBlock x:Name="StopsPath" Text="Plik zawierający przystanki i współrzędne w formacie xlsx lub txt" Foreground="Black" FontSize="15" Margin="110,50,190,359"/>
                 <Button x:Name="ChooseStopsFile" IsEnabled="False" Margin="685,50,95,0" VerticalAlignment="Top" Height="21" Content="Wybierz" Click="ChooseStopsFile_Click"/>
+                <Button VerticalAlignment="Top" HorizontalAlignment="Right" Height="21" Width="21" Background="Transparent" Click="HelpStopsButton_Click" Margin="0,49,70,0" BorderBrush="Transparent">
+                    <materialDesign:PackIcon Kind="FileQuestion" Background="#FFA0D5F6" Foreground="#FF5C99D6" Height="22" Width="22" Margin="-5"/>
+                </Button>
                 <TextBlock x:Name="TimetablePath" Text="Plik z ustrukturyzowanymi rozkładami jazdy - Więcej info w menu" Foreground="Black" FontSize="15" Margin="110,90,190,318"/>
                 <Button x:Name="ChooseTimetableFile" IsEnabled="False" Margin="685,90,95,0" VerticalAlignment="Top" Height="22" Content="Wybierz" Click="ChooseTimetableFile_Click"/>
+                <Button VerticalAlignment="Top" HorizontalAlignment="Right" Height="21" Width="21" Background="Transparent" Click="HelpXLSXButton_Click" Margin="0,90,70,0" BorderBrush="Transparent">
+                    <materialDesign:PackIcon Kind="FileQuestion" Background="#FFA0D5F6" Foreground="#FF5C99D6" Height="22" Width="22" Margin="-5"/>
+                </Button>
                 <Button x:Name="StopsMatchingFlag" Visibility="Hidden" Background="Green" Margin="310,127,315,0" VerticalAlignment="Top" Height="30" Content="Przystanki się pokrywają" Click="StopsMatchingFlag_Click"/>
                 <TextBlock Text="Rodzaje kursowania:" Foreground="Black" FontSize="20" Margin="110,162,370,244"/>
-                <ListBox x:Name="ServicesListBox" FontSize="20" Margin="110,190,370,89">
+                <ListBox x:Name="ServicesListBox" Background="Transparent" FontSize="20" Margin="110,190,370,89">
                     <ListBoxItem Content="R = Robocze"/>
                     <ListBoxItem Content="R = Robocze"/>
                     <ListBoxItem Content="R = Robocze"/>
@@ -46,10 +56,10 @@
                     <ListBoxItem Content="S = Szkolne"/>
                 </ListBox>
                 <TextBlock Text="Oznaczenie:" Foreground="Black" FontSize="20" Margin="515,221,235,183"/>
-                <TextBox x:Name="ServiceSymbol" MaxLength="6" Text="Symbol" GotFocus="HideTextFromTextBox" HorizontalAlignment="Left" FontSize="18" Margin="625,221,0,177"/>
+                <TextBox x:Name="ServiceSymbol" BorderThickness="0" Background="Transparent"  MaxLength="6" Text="Symbol" GotFocus="HideTextFromTextBox" HorizontalAlignment="Left" FontSize="18" Margin="625,221,0,177"/>
                 <TextBlock Text="Pełna nazwa:" Foreground="Black" FontSize="20" Margin="515,255,230,151"/>
-                <TextBox x:Name="ServiceFullName" MaxLength="35" Text="Rozwinięcie" GotFocus="HideTextFromTextBox" HorizontalAlignment="Left" FontSize="18" Margin="635,255,0,142" Width="100"/>
-                <Button x:Name="AddNewService" IsEnabled="False" Margin="515,292,125,0" VerticalAlignment="Top" Height="25" Content="Dodaj nowy rodzaj kursowania" Click="AddNewService_Click"/>
+                <TextBox x:Name="ServiceFullName" BorderThickness="0" Background="Transparent" MaxLength="35" Text="Rozwinięcie" GotFocus="HideTextFromTextBox" HorizontalAlignment="Left" FontSize="18" Margin="635,255,0,142" Width="100"/>
+                <Button x:Name="AddNewService" IsEnabled="False" BorderThickness="0" Margin="515,292,125,0" VerticalAlignment="Top" Height="25" Content="Dodaj nowy rodzaj kursowania" Click="AddNewService_Click"/>
             </Grid>
             <Button x:Name="GenerateGTFS" IsEnabled="False" Margin="175,440,175,0" VerticalAlignment="Top" Height="40" Content="Rozpocznij generowanie plików GTFS" Click="GenerateGTFS_Click"/>
 
