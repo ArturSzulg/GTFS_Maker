@@ -15,7 +15,8 @@ namespace Parser_GTFS
 {
     class Program
     {
-        private static MainWindow mainWindowHandler;
+        public static MainWindow mainWindowHandler;
+        public static string cityFullName;
 
         private static string savingPath = Directory.GetCurrentDirectory() + @"\GTFS";
 
@@ -367,8 +368,19 @@ namespace Parser_GTFS
                             int indexer = 0;
                             while (!(indexer > (totalRows - 3)))
                             {
-                                AddUniqeToList(stopNamesFromTimetable, namesRow.ElementAt(indexer));
-                                indexer++;
+                                try
+                                {
+                                    AddUniqeToList(stopNamesFromTimetable, namesRow.ElementAt(indexer));
+                                    indexer++;
+                                }
+                                catch
+                                {
+                                    Interfejs.Message successMessage = new Interfejs.Message(mainWindowHandler, "Uwaga", $"Widzę, że arkusz {myWorksheet.Name} zawiera {totalRows} wierszy. Ale od {indexer + 1} wiersza mam problem z pobraniem danych, sprawdź czy nie masz wierszy 'widmo'.");
+                                    successMessage.Owner = mainWindowHandler;
+                                    successMessage.Show();
+                                    successMessage.Topmost = true;
+                                    throw new GhostCellsException();
+                                }
                             }
                         }
                     }
@@ -426,12 +438,30 @@ namespace Parser_GTFS
                         if (myWorksheet.Name != "Services")
                         {
                             var totalColumns = myWorksheet.Dimension.End.Column;
+                            if ( totalColumns > 100)
+                            {
+                                Interfejs.Message successMessage = new Interfejs.Message(mainWindowHandler, "Uwaga", $"Widzę, że arkusz {myWorksheet.Name} zawiera {totalColumns} kolumn. Jeśli nie jest to realna liczba wprowadź nowy arkusz do rozkładu i przekopiuj tam rozkład, usuń wadliwy i nadaj jego nazwę nowo utworzonemu" );
+                                successMessage.Owner = mainWindowHandler;
+                                successMessage.Show();
+                                successMessage.Topmost = true;
+                            }
                             var namesRow = myWorksheet.Cells[2, 2, 2, totalColumns].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
                             int indexer = 0;
-                            while (!(indexer > (totalColumns - 2)))
+                            while (!(indexer >totalColumns-2) )
                             {
-                                AddUniqeToList(servicesSymbolsFromTimetable, namesRow.ElementAt(indexer));
-                                indexer++;
+                                try
+                                {
+                                    AddUniqeToList(servicesSymbolsFromTimetable, namesRow.ElementAt(indexer));
+                                    indexer++;
+                                }
+                                catch
+                                {
+                                    Interfejs.Message successMessage = new Interfejs.Message(mainWindowHandler, "Uwaga", $"Widzę, że arkusz {myWorksheet.Name} zawiera {totalColumns} kolumn. Ale od {indexer+1} kolumny mam problem z pobraniem danych, sprawdź czy nie masz kolumn 'widmo'.");
+                                    successMessage.Owner = mainWindowHandler;
+                                    successMessage.Show();
+                                    successMessage.Topmost = true;
+                                    throw new GhostCellsException();
+                                }
                             }
                         }
                     }
@@ -478,6 +508,7 @@ namespace Parser_GTFS
         public static bool CheckStopsMatching(MainWindow mainWindow)
         {
             mainWindowHandler = mainWindow;
+            cityFullName = mainWindowHandler.CityName.Text.Replace(' ', 'E');
             mainWindowHandler.servicesDictionary.Clear();
             List<string> stopNamesFromTimetable = new List<string> { };
             List<string> stopNamesFromStops = new List<string> { };
@@ -502,8 +533,20 @@ namespace Parser_GTFS
                             int indexer = 0;
                             while (!(indexer > (totalRows - 3)))
                             {
-                                AddUniqeToList(stopNamesFromTimetable, namesRow.ElementAt(indexer));
-                                indexer++;
+                                try
+                                {
+                                    AddUniqeToList(stopNamesFromTimetable, namesRow.ElementAt(indexer));
+                                    indexer++;
+                                }
+                                catch
+                                {
+                                    Interfejs.Message successMessage = new Interfejs.Message(mainWindowHandler, "Uwaga", $"Widzę, że arkusz {myWorksheet.Name} zawiera {totalRows} wierszy. Ale od {indexer + 1} wiersza mam problem z pobraniem danych, sprawdź czy nie masz wierszy 'widmo'.");
+                                    successMessage.Owner = mainWindowHandler;
+                                    successMessage.Show();
+                                    successMessage.Topmost = true;
+                                    return false;
+                                }
+
                             }
                         }
                     }
@@ -574,12 +617,8 @@ namespace Parser_GTFS
             }
         }
 
-        public static bool CheckServicesMatching(MainWindow mainWindow)
+        public static bool TryGenerateCalendar(MainWindow mainWindow)
         {
-            mainWindowHandler = mainWindow;
-            List<string> servicesSymbolsFromTimetable = new List<string> { };
-            List<string> servicesSymbolsFromSheet = new List<string> { };
-            List<string> servicesMeaning = new List<string> { };
             using (ExcelPackage xlPackage = new ExcelPackage(new FileInfo(mainWindow.timetableFilePath)))
             {
                 if (xlPackage.Workbook.Worksheets.Count != 0)
@@ -587,57 +626,134 @@ namespace Parser_GTFS
                     for (int sheet = 0; sheet < xlPackage.Workbook.Worksheets.Count; sheet++)
                     {
                         var myWorksheet = xlPackage.Workbook.Worksheets.ElementAt(sheet);
-                        if (myWorksheet.Name != "Services")
+                        if (myWorksheet.Name == "Services")
                         {
                             var totalColumns = myWorksheet.Dimension.End.Column;
-                            var namesRow = myWorksheet.Cells[2, 2, 2, totalColumns].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
-                            int indexer = 0;
-                            while (!(indexer > (totalColumns - 2)))
-                            {
-                                AddUniqeToList(servicesSymbolsFromTimetable, namesRow.ElementAt(indexer));
-                                indexer++;
-                            }
-                        }
-                        else // plik services
-                        {
                             var totalRows = myWorksheet.Dimension.End.Row;
-                            var symbolsRow = myWorksheet.Cells[2, 1, totalRows, 1].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
-                            var meanigRows = myWorksheet.Cells[2, 2, totalRows, 2].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
-                            int indexer = 0;
-                            while (!(indexer > (totalRows - 2)))
+                            if(totalColumns == 11) // poprawna "szerokosc"
                             {
-                                AddUniqeToList(servicesSymbolsFromSheet, symbolsRow.ElementAt(indexer));
-                                AddUniqeToList(servicesMeaning, meanigRows.ElementAt(indexer));
-                                indexer++;
+                                Calendar calendar = new Calendar(savingPath);
+                                for (int i = 2; i < totalRows + 1; i++)
+                                {
+                                    try
+                                    {
+                                        var calendarRow = myWorksheet.Cells[i, 2, i, totalColumns].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
+                                        string service_id = calendarRow.ElementAt(0);
+                                        string start_date = calendarRow.ElementAt(1);
+                                        string end_date = calendarRow.ElementAt(2);
+                                        string monday = calendarRow.ElementAt(3);
+                                        string tuesday = calendarRow.ElementAt(4);
+                                        string wednesday = calendarRow.ElementAt(5);
+                                        string thursday = calendarRow.ElementAt(6);
+                                        string friday = calendarRow.ElementAt(7);
+                                        string saturday = calendarRow.ElementAt(8);
+                                        string sunday = calendarRow.ElementAt(9);
+                                        Calendar writeCalendar = new Calendar(service_id, start_date, end_date, monday, tuesday, wednesday, thursday, friday, saturday, sunday, savingPath);
+                                    }
+                                    catch
+                                    {
+                                        Interfejs.Message successMessage = new Interfejs.Message(mainWindowHandler, "Uwaga", $"Widzę, że wiersz {i} arkuszu 'Services' nie zawiera 11 wypełnionych kolumn odnoszących się do kalendarza. Sprawdź to i popraw wg. schematu, a następnie spróbuj ponownie wytworzyć pliki GTFS.");
+                                        successMessage.Owner = mainWindowHandler;
+                                        successMessage.Show();
+                                        successMessage.Topmost = true;
+                                    }
+                                }
+                                return true;
+                            }
+                            else
+                            {
+                                Interfejs.Message successMessage = new Interfejs.Message(mainWindowHandler, "Uwaga", $"Widzę, że arkusz 'Services' nie zawiera 11 wypełnionych kolumn odnoszących się do kalendarza. Sprawdź to i popraw wg. schematu, a następnie spróbuj ponownie wytworzyć pliki GTFS.");
+                                successMessage.Owner = mainWindowHandler;
+                                successMessage.Show();
+                                successMessage.Topmost = true;
+                                return false;
                             }
                         }
-                    }
-                }
-            }
-            if (AreAllServicesMatched(servicesSymbolsFromTimetable, servicesSymbolsFromSheet))
-            {
-                mainWindowHandler.servicesDictionary.Clear();
-                for (int i = 0; i < servicesSymbolsFromSheet.Count; i++)
-                { 
-                    if (!mainWindowHandler.IsServicesDictioranyContainingKey(servicesSymbolsFromSheet[i]) && !mainWindowHandler.IsServicesDictioranyContainingValue(servicesMeaning[i]))
-                    {
-                        mainWindowHandler.servicesDictionary.Add(servicesSymbolsFromSheet[i], servicesMeaning[i]);
-                    }
-                }
-                return true;
-            }
-            else
-            {
-                mainWindowHandler.servicesDictionary.Clear();
-                for (int i = 0; i < servicesSymbolsFromSheet.Count; i++)
-                {
-                    if (!mainWindowHandler.IsServicesDictioranyContainingKey(servicesSymbolsFromSheet[i]) && !mainWindowHandler.IsServicesDictioranyContainingValue(servicesMeaning[i]))
-                    {
-                        mainWindowHandler.servicesDictionary.Add(servicesSymbolsFromSheet[i], servicesMeaning[i]);
                     }
                 }
                 return false;
             }
+        }
+
+        public static bool CheckServicesMatching(MainWindow mainWindow)
+        {
+            if (TryGenerateCalendar(mainWindow))
+            {
+                mainWindowHandler = mainWindow;
+                List<string> servicesSymbolsFromTimetable = new List<string> { };
+                List<string> servicesSymbolsFromSheet = new List<string> { };
+                List<string> servicesMeaning = new List<string> { };
+                using (ExcelPackage xlPackage = new ExcelPackage(new FileInfo(mainWindow.timetableFilePath)))
+                {
+                    if (xlPackage.Workbook.Worksheets.Count != 0)
+                    {
+                        for (int sheet = 0; sheet < xlPackage.Workbook.Worksheets.Count; sheet++)
+                        {
+                            var myWorksheet = xlPackage.Workbook.Worksheets.ElementAt(sheet);
+                            if (myWorksheet.Name != "Services")
+                            {
+                                var totalColumns = myWorksheet.Dimension.End.Column;
+                                var namesRow = myWorksheet.Cells[2, 2, 2, totalColumns].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
+                                int indexer = 0;
+                                while (!(indexer > (totalColumns - 2)))
+                                {
+                                    try
+                                    {
+                                        AddUniqeToList(servicesSymbolsFromTimetable, namesRow.ElementAt(indexer));
+                                        indexer++;
+                                    }
+                                    catch
+                                    {
+                                        Interfejs.Message successMessage = new Interfejs.Message(mainWindowHandler, "Uwaga", $"Widzę, że arkusz {myWorksheet.Name} zawiera {totalColumns} kolumn. Ale od {indexer + 1} kolumny mam problem z pobraniem danych, sprawdź czy nie masz kolumn 'widmo'.");
+                                        successMessage.Owner = mainWindowHandler;
+                                        successMessage.Show();
+                                        successMessage.Topmost = true;
+                                        throw new GhostCellsException();
+                                    }
+                                }
+                            }
+                            else // plik services
+                            {
+                                var totalRows = myWorksheet.Dimension.End.Row;
+                                var symbolsRow = myWorksheet.Cells[2, 1, totalRows, 1].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
+                                var meanigRows = myWorksheet.Cells[2, 2, totalRows, 2].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
+                                int indexer = 0;
+                                while (!(indexer > (totalRows - 2)))
+                                {
+                                    AddUniqeToList(servicesSymbolsFromSheet, symbolsRow.ElementAt(indexer));
+                                    AddUniqeToList(servicesMeaning, meanigRows.ElementAt(indexer));
+                                    indexer++;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (AreAllServicesMatched(servicesSymbolsFromTimetable, servicesSymbolsFromSheet))
+                {
+                    mainWindowHandler.servicesDictionary.Clear();
+                    for (int i = 0; i < servicesSymbolsFromSheet.Count; i++)
+                    {
+                        if (!mainWindowHandler.IsServicesDictioranyContainingKey(servicesSymbolsFromSheet[i]) && !mainWindowHandler.IsServicesDictioranyContainingValue(servicesMeaning[i]))
+                        {
+                            mainWindowHandler.servicesDictionary.Add(servicesSymbolsFromSheet[i], servicesMeaning[i]);
+                        }
+                    }
+                    return true;
+                }
+                else
+                {
+                    mainWindowHandler.servicesDictionary.Clear();
+                    for (int i = 0; i < servicesSymbolsFromSheet.Count; i++)
+                    {
+                        if (!mainWindowHandler.IsServicesDictioranyContainingKey(servicesSymbolsFromSheet[i]) && !mainWindowHandler.IsServicesDictioranyContainingValue(servicesMeaning[i]))
+                        {
+                            mainWindowHandler.servicesDictionary.Add(servicesSymbolsFromSheet[i], servicesMeaning[i]);
+                        }
+                    }
+                    return false;
+                }
+            }
+            else return false;
         }
 
         private static bool IsTheDayGone(string beginningTime, string endTime) // HH:MM:SS
@@ -657,6 +773,55 @@ namespace Parser_GTFS
             }
             else return time; // all ok
         }
+
+        public static async ValueTask<bool> MakeAsyncTripsnStopTimes()
+        {
+            Task<bool> response = new Task<bool>(MakeTripsNStopTimes);
+            response.Start();
+            return (await response);
+        }
+
+        //private static string ChangeFromLibre(string decimalValue)
+        //{
+        //    // decimalValue * 24 = (int) - hour
+        //    // rest * 60 = minutes
+
+        //}
+
+        public static bool TestFormulasInTimeTable()
+        {
+            using (ExcelPackage xlPackage = new ExcelPackage(new FileInfo(mainWindowHandler.timetableFilePath)))
+            {
+                int numberOfWorksheets = xlPackage.Workbook.Worksheets.Count();
+                for (int sheet = 0; sheet < numberOfWorksheets; sheet++)
+                {
+                    var myWorksheet = xlPackage.Workbook.Worksheets.ElementAt(sheet);
+                    if (myWorksheet.Name != "Services")
+                    {
+                        var totalRows = myWorksheet.Dimension.End.Row;
+                        var totalColumns = myWorksheet.Dimension.End.Column;
+
+                        for (int column = 2; column <= totalColumns; column++) // od 2 col włącznie
+                        {
+                            var scheduleRows = myWorksheet.Cells[3, column, totalRows, column].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
+                            for (int rowNumber = totalRows - 3; rowNumber >= 0; rowNumber--) // spr stacje docelową (jak są dziury)
+                            {
+                                if (scheduleRows.ElementAt(rowNumber) != "-" && scheduleRows.ElementAt(rowNumber) != "")
+                                {
+                                    
+                                    if (scheduleRows.ElementAt(rowNumber).Length != 19)
+                                    {
+                                        return false; // cuz its not empty 
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return true;
+            }
+        }
+
 
         public static bool MakeTripsNStopTimes() // When xlsx contains empty cells, you need to change them from nothing to fe. "-", if not you ll be skipping them automatically
         {
@@ -691,7 +856,7 @@ namespace Parser_GTFS
                                 sheetStopsNameTabe.Add(namesRow.ElementAt(i));
                                 sheetStopsIDsTabe.Add(GetStopIDFromName(namesRow.ElementAt(i).ToString()));
                             }
-                            string headsign = "HEADSIGN";
+                            string headsign = "Brak przystankow-SPRAWDZ rozklad";
                             int tripsIndex = 1;
                             string serviceType;
                             for (int column = 2; column <= totalColumns; column++) // od 2 col włącznie
@@ -707,14 +872,18 @@ namespace Parser_GTFS
                                 {
                                     if (scheduleRows.ElementAt(rowNumber) != "-" && scheduleRows.ElementAt(rowNumber) != "")
                                     {
-                                        // last stop time 
-                                        tripEndTime = scheduleRows.ElementAt(rowNumber).Remove(0,11);
-                                        headsign = namesRow.ElementAt(rowNumber);
-                                        break;
+                                        if(scheduleRows.ElementAt(rowNumber).Length == 19)
+                                        {
+                                            // last stop time 
+                                            tripEndTime = scheduleRows.ElementAt(rowNumber).Remove(0, 11);
+                                            headsign = namesRow.ElementAt(rowNumber);
+                                            break;
+                                        }
                                     }
                                 }
                                 int sequence = 0;
                                 bool DayPassed = false;
+                                string tripID = tripsIndex.ToString() + lineNumber + cityFullName[0] + lineNumber + sheet.ToString() + lineNumber + lineNumber;
                                 for (int rowNumber = 0; rowNumber < totalRows - 2; rowNumber++)
                                 {
                                     //string tppp = scheduleRows.ElementAt(rowNumber); // breakpointa i spr jak wyglada czas...
@@ -729,7 +898,7 @@ namespace Parser_GTFS
                                         {
                                             string time = scheduleRows.ElementAt(rowNumber).Remove(0, 11);
                                             if (DayPassed) time = DayGoneTimeChanger(time, Int32.Parse(tripStartTime.Remove(2)));
-                                            Stop_time stopTimeHandler = new Stop_time(tripsIndex.ToString() + lineNumber + "M" + lineNumber + sheet.ToString() + lineNumber + lineNumber, time, time, sheetStopsIDsTabe[rowNumber], sequence.ToString(), savingPath);
+                                            Stop_time stopTimeHandler = new Stop_time(tripID, time, time, sheetStopsIDsTabe[rowNumber], sequence.ToString(), savingPath);
                                             sequence++;
                                         }
                                         else
@@ -744,7 +913,7 @@ namespace Parser_GTFS
                                                     string departureTime = scheduleRows.ElementAt(rowNumber + 1).Remove(0, 11);
                                                     if (DayPassed) arrivalTime = DayGoneTimeChanger(arrivalTime, Int32.Parse(tripStartTime.Remove(2)));
                                                     if (DayPassed) departureTime = DayGoneTimeChanger(departureTime, Int32.Parse(tripStartTime.Remove(2)));
-                                                    Stop_time stopTimeHandler = new Stop_time(tripsIndex.ToString() + lineNumber + mainWindowHandler.CityName.Text[0] + lineNumber + sheet.ToString() + lineNumber + lineNumber, arrivalTime, departureTime, sheetStopsIDsTabe[rowNumber], sequence.ToString(), savingPath);
+                                                    Stop_time stopTimeHandler = new Stop_time(tripID, arrivalTime, departureTime, sheetStopsIDsTabe[rowNumber], sequence.ToString(), savingPath);
                                                     sequence++;
                                                     rowNumber++;
                                                     notThisIndex = false;
@@ -755,14 +924,14 @@ namespace Parser_GTFS
                                             {
                                                 string time = scheduleRows.ElementAt(rowNumber).Remove(0, 11); 
                                                 if (DayPassed) time = DayGoneTimeChanger(time, Int32.Parse(tripStartTime.Remove(2)));
-                                                Stop_time stopTimeHandler = new Stop_time(tripsIndex.ToString() + lineNumber + mainWindowHandler.CityName.Text[0] + lineNumber + sheet.ToString() + lineNumber + lineNumber, time, time, sheetStopsIDsTabe[rowNumber], sequence.ToString(), savingPath);
+                                                Stop_time stopTimeHandler = new Stop_time(tripID, time, time, sheetStopsIDsTabe[rowNumber], sequence.ToString(), savingPath);
                                                 sequence++;
                                             }
                                         }
                                     }
                                 }
                                 // stop_times
-                                Trip tripHandler = new Trip(lineNumber, serviceType, tripsIndex.ToString() + lineNumber + mainWindowHandler.CityName.Text[0] + lineNumber + sheet.ToString() + lineNumber + lineNumber, headsign, savingPath);
+                                Trip tripHandler = new Trip(lineNumber, serviceType, tripID, headsign, savingPath);
                                 tripsIndex++;
                             }
                         }

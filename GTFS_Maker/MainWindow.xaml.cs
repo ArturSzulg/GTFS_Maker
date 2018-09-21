@@ -18,6 +18,7 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using System.IO.Compression;
 using OfficeOpenXml;
+using System.Threading;
 
 namespace GTFS_Maker
 {
@@ -26,7 +27,7 @@ namespace GTFS_Maker
     /// </summary>
     public partial class MainWindow : Window
     {
-        private MainWindow actualWindow;
+        public MainWindow actualWindow;
         public string currentDirectory;
         public string stopsFilePath;
         public string stopsFileExtension;
@@ -39,7 +40,7 @@ namespace GTFS_Maker
         public Dictionary<string, string> routesSigns;
         public MainWindow()
         {
-            actualWindow = this;
+            Program.mainWindowHandler =actualWindow = this;
             InitializeComponent();
             currentDirectory = Directory.GetCurrentDirectory();
             servicesDictionary = new Dictionary<string, string> { };
@@ -136,26 +137,36 @@ namespace GTFS_Maker
             }
             if (IsStopsFileAdded() && IsTimetableFileAdded())
             {
-                try
-                {
-                    bool AreStopsMatched = Program.CheckStopsMatching(actualWindow);
-                    ShowStopsMatching(AreStopsMatched);
-                    if (AreStopsMatched)
+                if (Program.TestFormulasInTimeTable())
+                { 
+                    try
                     {
-                        ServicesListBox.Items.Clear();
-                        ShowServicesMatching(Program.CheckServicesMatching(actualWindow));
-                        ShowServices();
+                        bool AreStopsMatched = Program.CheckStopsMatching(actualWindow);
+                        ShowStopsMatching(AreStopsMatched);
+                        if (AreStopsMatched )
+                        {
+                            ServicesListBox.Items.Clear();
+                            ShowServicesMatching(Program.CheckServicesMatching(actualWindow));//////////////////////////////////////////////////////////////////////////
+                            ShowServices();
+                        }
+                    }
+                    catch
+                    {
+                        Interfejs.Message successMessage = new Interfejs.Message(this, "Błąd", "Sprawdź zgodność wybranych plików z wymaganą strukturą");
+                        successMessage.Owner = this;
+                        successMessage.Show();
+                        successMessage.Topmost = true;
+                        ClearUI();
                     }
                 }
-                catch
+                else
                 {
-                    Interfejs.Message successMessage = new Interfejs.Message(this, "Błąd", "Sprawdź zgodność wybranych plików z wymaganą strukturą");
+                    Interfejs.Message successMessage = new Interfejs.Message(this, "Uwaga", "Wybrany rozkład zawiera komórki które mają błędne formatowanie. Zmień formuły zawierające czasy na typ 'GG:MM'");
                     successMessage.Owner = this;
                     successMessage.Show();
                     successMessage.Topmost = true;
-                    ClearUI();
+                    ClearUI(false);
                 }
-
             }
         }
 
@@ -209,7 +220,7 @@ namespace GTFS_Maker
             }
         }
 
-        private void ShowServicesMatching(bool IsAllMatched)
+        public void ShowServicesMatching(bool IsAllMatched)
         {
             if (IsAllMatched)
             {
@@ -282,10 +293,10 @@ namespace GTFS_Maker
                 if (noMatchServices.Contains(ServiceSymbol.Text))
                 {
                     noMatchServices.Remove(ServiceSymbol.Text);
-                    if(noMatchServices.Count == 0)
-                    {
-                        ShowServicesMatching(true);
-                    }
+                    NewCalendar newCalendar = new NewCalendar(actualWindow, ServiceFullName.Text, noMatchServices.Count);
+                    newCalendar.Owner = this;
+                    newCalendar.Show();
+                    newCalendar.Topmost = true;
                 }
             }
             else
@@ -295,10 +306,6 @@ namespace GTFS_Maker
                 successMessage.Show();
                 successMessage.Topmost = true;
             }
-            // TO DO check services matching, but olny if Stops are good :)
-            // delete old, or always make new - autoincrement
-            //ShowServicesMatching(true);
-
         }
 
         private void ClearUI(bool WithAgency = true)
@@ -317,8 +324,6 @@ namespace GTFS_Maker
             stopsFilePath = stopsFileExtension = timetableFilePath = typeOfRoute = null;
             servicesDictionary.Clear();
             routesDictionary.Clear();
-            noMatchServices.Clear();
-            routesSigns.Clear();
             Rail.IsChecked = Metro.IsChecked = Bus.IsChecked = Tram.IsChecked = false;
             ServicesListBox.Items.Clear();
         }
@@ -342,18 +347,24 @@ namespace GTFS_Maker
             }
         }
 
-        private void GenerateGTFS_Click(object sender, RoutedEventArgs e)
+        private async void GenerateGTFS_Click(object sender, RoutedEventArgs e)
         {
             Agency agency = new Agency(currentDirectory + @"\GTFS");
             Program.MakeAgencyTXT();
             Stop_time stopTime = new Stop_time(currentDirectory + @"\GTFS");
             Trip trip = new Trip(currentDirectory + @"\GTFS");
-            if (Program.MakeTripsNStopTimes())
-            {
-                // TO DO 
-                // Wybierz katalog do zapisu GTFS gdzieś indziej niż GTFSowe pliki są xD
-                //ZipFile.CreateFromDirectory(currentDirectory + @"\GTFS", (currentDirectory + @"\GTFS\" + CityName.Text.ToLower() + "-" + DateTime.Now.Date.ToString().Remove(10)+".zip"));
 
+
+
+            WaitingWindow waitingWindow = new WaitingWindow(actualWindow);
+            waitingWindow.Owner = this;
+            waitingWindow.Show();
+            bool response = await Program.MakeAsyncTripsnStopTimes();
+            BlockMainWindow(false);
+            waitingWindow.Close();
+
+            if (response)
+            {
                 SaveFileDialog saveFileDialog = new SaveFileDialog();
                 saveFileDialog.Filter = "Pliki ZIP|*.zip";
                 saveFileDialog.FilterIndex = 1;
@@ -424,12 +435,15 @@ namespace GTFS_Maker
                     successMessage.Show();
                     successMessage.Topmost = true;
                 }
-                catch
+                catch (Exception ex)
                 {
-                    Interfejs.Message successMessage = new Interfejs.Message(this, "Błąd #03", "Najprawopodobniej wybrany plik nie jest zgodny z wymaganą strukturą");
-                    successMessage.Owner = this;
-                    successMessage.Show();
-                    successMessage.Topmost = true;
+                    if (ex.GetType() != typeof(GhostCellsException))
+                    {
+                        Interfejs.Message successMessage = new Interfejs.Message(this, "Błąd #03", "Najprawopodobniej wybrany plik nie jest zgodny z wymaganą strukturą");
+                        successMessage.Owner = this;
+                        successMessage.Show();
+                        successMessage.Topmost = true;
+                    }
                 }
             }
         }
@@ -453,12 +467,16 @@ namespace GTFS_Maker
                     successMessage.Show();
                     successMessage.Topmost = true;
                 }
-                catch
+                catch (Exception ex)
                 {
-                    Interfejs.Message successMessage = new Interfejs.Message(this, "Błąd #04", "Najprawopodobniej wybrany plik nie jest zgodny z wymaganą strukturą");
-                    successMessage.Owner = this;
-                    successMessage.Show();
-                    successMessage.Topmost = true;
+                    if (ex.GetType() != typeof(GhostCellsException))
+                    {
+                        Interfejs.Message successMessage = new Interfejs.Message(this, "Błąd #04", "Najprawopodobniej wybrany plik nie jest zgodny z wymaganą strukturą");
+                        successMessage.Owner = this;
+                        successMessage.Show();
+                        successMessage.Topmost = true;
+                    }
+
                 }
             }
         }
