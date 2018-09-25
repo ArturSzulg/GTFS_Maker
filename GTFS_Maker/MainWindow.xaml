@@ -13,17 +13,18 @@
                     <StackPanel Width="210" Background="White">
                         <Button Content="Generuj listę przystanków" Click="GenerateStopsList_Click"/>
                         <Button Content="Generuj listę serwisów" Click="GenerateServicesList_Click"/>
+                        <Button Content="Waliduj archiwum" Click="RunValidator_Click"/>
                         <Button x:Name="MinimizeButton" Content="Minimalizuj" Click="MinimizeButton_Click"/>
-                        <Button Content="Exit" Click="ExitButton_Click"/>
+                        <Button Content="Wyjście" Click="ExitButton_Click"/>
                     </StackPanel>
                 </materialDesign:PopupBox>
             </StackPanel>
             <TextBlock x:Name="MainTopTextBlock" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="26" Text="GTFS maker"/>
         </Grid>
         <Grid x:Name="MainGrid" HorizontalAlignment="Right" VerticalAlignment="Bottom" Height="520" Width="900"  Background="#FFA0D5F6">
-            <TextBox x:Name="CityName" BorderThickness="0" GotFocus="HideTextFromTextBox" GotMouseCapture="HideTextFromTextBox" Background="Transparent" HorizontalAlignment="Left" MaxLength="25" MinWidth="80" VerticalAlignment="Top" FontSize="15" Text="Nazwa miasta" Foreground="Black" Margin="397,10,0,0" />
-            <TextBox x:Name="Agency" BorderThickness="0" GotFocus="HideTextFromTextBox" GotMouseCapture="HideTextFromTextBox" Background="Transparent" HorizontalAlignment="Center" MaxLength="35" MinWidth="80" VerticalAlignment="Top" FontSize="15" Text="Nazwa zarządcy" Foreground="Black" Margin="20,10,733,0"/>
-            <TextBox x:Name="Site" BorderThickness="0" GotFocus="HideTextFromTextBox" GotMouseCapture="HideTextFromTextBox" Background="Transparent" HorizontalAlignment="Right" MaxLength="40" MinWidth="80" VerticalAlignment="Top" FontSize="15" Text="Adres strony zarządcy" Foreground="Black" Margin="0,10,20,0"/>
+            <TextBox x:Name="CityName" BorderThickness="0" GotFocus="HideTextFromTextBox" Background="Transparent" HorizontalAlignment="Left" MaxLength="25" MinWidth="80" VerticalAlignment="Top" FontSize="15" Text="Nazwa miasta" Foreground="Black" Margin="397,10,0,0" />
+            <TextBox x:Name="Agency" BorderThickness="0" GotFocus="HideTextFromTextBox"  Background="Transparent" HorizontalAlignment="Center" MaxLength="35" MinWidth="80" VerticalAlignment="Top" FontSize="15" Text="Nazwa zarządcy" Foreground="Black" Margin="20,10,733,0"/>
+            <TextBox x:Name="Site" BorderThickness="0" GotFocus="HideTextFromTextBox" Background="Transparent" HorizontalAlignment="Right" MaxLength="40" MinWidth="80" VerticalAlignment="Top" FontSize="15" Text="Adres strony zarządcy" Foreground="Black" Margin="0,10,20,0"/>
             <Grid x:Name="Stops" Margin="20,80,20,10">
                 <ComboBox x:Name="OtherTypes" Foreground="Black" Background="#FFA0D5F6" FontSize="15" SelectedIndex="0" Margin="385,-2,385,408">
                 </ComboBox>

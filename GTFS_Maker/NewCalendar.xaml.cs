@@ -30,7 +30,7 @@ namespace GTFS_Maker
             mainWindowHandler = mWindowHandler;
             InitializeComponent();
             ServiceName.Text = service;
-            noMatchService = noMatchServicesValue;
+            noMatchService = noMatchServicesValue;  
             mainWindowHandler.BlockMainWindow(true);
         }
 

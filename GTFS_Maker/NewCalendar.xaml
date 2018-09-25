@@ -10,18 +10,18 @@
         </Grid>
         <Grid Width="400" Margin="0,85,0,45">
             <TextBlock Text="Poniedziałki" Foreground="Black" FontSize="15" Margin="35,0,280,145"/>
-            <CheckBox x:Name="Monday" Margin="22,5,365,152"/>
+            <CheckBox x:Name="Monday" Margin="15,5,372,152"/>
             <TextBlock Text="Wtorki" Foreground="Black" FontSize="15" Margin="35,25,280,121"/>
-            <CheckBox x:Name="Tuesday" Margin="22,30,365,127"/>
+            <CheckBox x:Name="Tuesday" Margin="15,30,372,127"/>
             <TextBlock Text="Środy" Foreground="Black" FontSize="15" Margin="35,49,280,98"/>
-            <CheckBox x:Name="Wednesday" Margin="22,55,365,102"/>
+            <CheckBox x:Name="Wednesday" Margin="15,55,372,102"/>
             <TextBlock Text="Czwartki" Foreground="Black" FontSize="15" Margin="35,72,280,75"/>
-            <CheckBox x:Name="Thursday" Margin="22,78,365,79"/>
+            <CheckBox x:Name="Thursday" Margin="15,78,372,79"/>
             <TextBlock Text="Piątki" Foreground="Black" FontSize="15" Margin="35,95,280,51"/>
-            <CheckBox x:Name="Friday" Margin="22,100,365,57"/>
-            <CheckBox x:Name="Saturday" Margin="22,125,365,32"/>
+            <CheckBox x:Name="Friday" Margin="15,100,372,57"/>
+            <CheckBox x:Name="Saturday" Margin="15,125,372,32"/>
             <TextBlock Text="Soboty" Foreground="Black" FontSize="15" Margin="35,119,280,27"/>
-            <CheckBox x:Name="Sunday" Margin="22,148,365,9"/>
+            <CheckBox x:Name="Sunday" Margin="15,148,372,9"/>
             <TextBlock Text="Niedziele" Foreground="Black" FontSize="15" Margin="35,143,280,3"/>
             <TextBlock Text="Od daty:" Foreground="Black" FontSize="15" Margin="170,60,145,86"/>
             <TextBox x:Name="StartDate" GotFocus="HideTextFromTextBox" GotMouseCapture="HideTextFromTextBox" MaxLength="8" FontSize="15" Text="RRRRMMDD" Foreground="Black" Margin="240,57,65,88" />

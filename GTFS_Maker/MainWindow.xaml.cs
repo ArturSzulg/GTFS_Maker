@@ -34,6 +34,7 @@ namespace GTFS_Maker
         public string timetableFilePath;
         public string timetableFileExtension = "xslx";
         public string typeOfRoute;
+        public bool isTypeServiceClicked;
         public Dictionary<string, string> servicesDictionary; //
         public Dictionary<string, string> routesDictionary;
         public List<string> noMatchServices;
@@ -52,10 +53,11 @@ namespace GTFS_Maker
                                                          };
             noMatchServices = new List<string> { };
             ServicesListBox.Items.Clear();
-            DispatcherTimer timer = new DispatcherTimer(new TimeSpan(0, 0, 1), DispatcherPriority.Normal, delegate
+            isTypeServiceClicked = false;
+            DispatcherTimer timer = new DispatcherTimer(new TimeSpan(0, 0, 0, 0, 200), DispatcherPriority.Normal, delegate
             {
                 CurentTimeTextBlock.Text = DateTime.Now.ToString("HH:mm");
-                if (IsAgencyFilled()) ChooseStopsFile.IsEnabled = true;
+                if (IsAgencyFilled() && isTypeServiceClicked) ChooseStopsFile.IsEnabled = true;
                 else ChooseStopsFile.IsEnabled = GenerateGTFS.IsEnabled = false;
             }, Dispatcher);
             Directory.CreateDirectory(Directory.GetCurrentDirectory() + @"\GTFS");
@@ -159,14 +161,14 @@ namespace GTFS_Maker
                         ClearUI();
                     }
                 }
-                else
-                {
-                    Interfejs.Message successMessage = new Interfejs.Message(this, "Uwaga", "Wybrany rozkład zawiera komórki które mają błędne formatowanie. Zmień formuły zawierające czasy na typ 'GG:MM'");
-                    successMessage.Owner = this;
-                    successMessage.Show();
-                    successMessage.Topmost = true;
-                    ClearUI(false);
-                }
+                //else
+                //{
+                //    Interfejs.Message successMessage = new Interfejs.Message(this, "Uwaga", "Wybrany rozkład zawiera komórki które mają błędne formatowanie. Zmień formuły zawierające czasy na typ 'GG:MM'");
+                //    successMessage.Owner = this;
+                //    successMessage.Show();
+                //    successMessage.Topmost = true;
+                //    ClearUI(false);
+                //}
             }
         }
 
@@ -308,7 +310,7 @@ namespace GTFS_Maker
             }
         }
 
-        private void ClearUI(bool WithAgency = true)
+        public void ClearUI(bool WithAgency = true)
         {
             if (WithAgency)
             { 
@@ -316,6 +318,7 @@ namespace GTFS_Maker
                 Agency.Text = "Nazwa zarządcy";
                 Site.Text = "Adres strony zarządcy";
             }
+            isTypeServiceClicked = false;
             StopsPath.Text = "Plik zawierający przystanki i współrzędne w formacie xlsx lub txt";
             TimetablePath.Text = "Plik z ustrukturyzowanymi rozkładami jazdy - Więcej info w menu";
             ChooseStopsFile.IsEnabled = !WithAgency;
@@ -336,6 +339,7 @@ namespace GTFS_Maker
             string selectedTypeOfRouteName = checkBoxHandler.Name;
             if (checkBoxHandler.Name == "Other") selectedTypeOfRouteName = OtherTypes.SelectedValue.ToString();
             routesSigns.TryGetValue(selectedTypeOfRouteName, out typeOfRoute);
+            isTypeServiceClicked = true;
             if (typeOfRoute == null)
             {
                 Tram.IsChecked = Bus.IsChecked = Metro.IsChecked = Rail.IsChecked = Other.IsChecked = false;
@@ -344,6 +348,7 @@ namespace GTFS_Maker
                 successMessage.Show();
                 successMessage.Topmost = true;
                 GenerateGTFS.IsEnabled = true;
+                isTypeServiceClicked = false;
             }
         }
 
@@ -370,7 +375,10 @@ namespace GTFS_Maker
                 saveFileDialog.FilterIndex = 1;
                 saveFileDialog.RestoreDirectory = true;
                 saveFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                saveFileDialog.FileName = CityName.Text.ToLower() + "-" + DateTime.Now.Date.ToString().Remove(10) + ".zip";
+                string year = DateTime.Now.Date.ToString().Remove(5);
+                string month = DateTime.Now.Date.ToString().Remove(8).Remove(0, 5);
+                string day= DateTime.Now.Date.ToString().Remove(10).Remove(0,8);
+                saveFileDialog.FileName = CityName.Text.ToLower().Replace(' ','-') + "-" + year + month + day + ".zip";
                 saveFileDialog.DefaultExt = "zip";
                 Nullable<bool> dialogResult = saveFileDialog.ShowDialog();
                 if (dialogResult == true)
@@ -387,7 +395,17 @@ namespace GTFS_Maker
                         successMessage.Show();
                         successMessage.Topmost = true;
                         ClearUI();
-                        System.Diagnostics.Process.Start("fv.exe", saveFileDialog.FileName);
+
+                        string path = currentDirectory + @"\validation.bat";
+                        if (File.Exists(path)) File.Delete(path);//del existing one
+                        using (FileStream fs = File.Create(path))// now create new
+                        {
+                            Byte[] text = new UTF8Encoding(true).GetBytes(@"start """" /B fv.exe """ + saveFileDialog.FileName + @"""");
+                            fs.Write(text, 0, text.Length);
+                        }
+                        System.Diagnostics.Process.Start("validation.bat");
+
+
                     }
                     catch
                     {
@@ -481,5 +499,27 @@ namespace GTFS_Maker
             }
         }
 
+        private void RunValidator_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            openFileDialog.Filter = "Pliki ZIP|*.zip";
+            openFileDialog.FilterIndex = 1;
+            openFileDialog.Title = "Wybierz archiwum zip które chcesz poddać walidacji";
+            openFileDialog.RestoreDirectory = true;
+            Nullable<bool> dialogResult = openFileDialog.ShowDialog();
+            if (dialogResult == true)
+            {
+                string path = currentDirectory + @"\validation.bat";
+                if (File.Exists(path)) File.Delete(path);//del existing one
+                using (FileStream fs = File.Create(path))// now create new
+                {
+                    Byte[] text = new UTF8Encoding(true).GetBytes(@"start """" /B fv.exe """ + openFileDialog.FileName + @"""");
+                    fs.Write(text, 0, text.Length);
+                }
+                System.Diagnostics.Process.Start("validation.bat");
+            }
+        }
     }
 }
+//start "" /B fv.exe "C:\Users\Tunio\Desktop\GTFSowe\Nauka PKM\test-2018-09-17.zip"

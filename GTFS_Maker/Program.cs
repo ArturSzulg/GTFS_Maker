@@ -781,13 +781,6 @@ namespace Parser_GTFS
             return (await response);
         }
 
-        //private static string ChangeFromLibre(string decimalValue)
-        //{
-        //    // decimalValue * 24 = (int) - hour
-        //    // rest * 60 = minutes
-
-        //}
-
         public static bool TestFormulasInTimeTable()
         {
             using (ExcelPackage xlPackage = new ExcelPackage(new FileInfo(mainWindowHandler.timetableFilePath)))
@@ -804,13 +797,27 @@ namespace Parser_GTFS
                         for (int column = 2; column <= totalColumns; column++) // od 2 col włącznie
                         {
                             var scheduleRows = myWorksheet.Cells[3, column, totalRows, column].Select(c => c.Value == null ? string.Empty : c.Value.ToString());
+                            if (scheduleRows.Count() != totalRows - 2) // 2 first rows
+                            {
+                                Interfejs.Message successMessage = new Interfejs.Message(mainWindowHandler, "Uwaga", "Wybrany rozkład zawiera puste komórki, zamień je na znak '-', następnie spróbuj ponownie");
+                                successMessage.Owner = mainWindowHandler;
+                                successMessage.Show();
+                                successMessage.Topmost = true;
+                                mainWindowHandler.ClearUI(false);
+                                return false; // cuz its not empty 
+                            }
                             for (int rowNumber = totalRows - 3; rowNumber >= 0; rowNumber--) // spr stacje docelową (jak są dziury)
                             {
                                 if (scheduleRows.ElementAt(rowNumber) != "-" && scheduleRows.ElementAt(rowNumber) != "")
                                 {
-                                    
-                                    if (scheduleRows.ElementAt(rowNumber).Length != 19)
+                                    int tmp1 = scheduleRows.ElementAt(rowNumber).Length;
+                                    if (scheduleRows.ElementAt(rowNumber).Length != 19 && scheduleRows.ElementAt(rowNumber).Length != 5)
                                     {
+                                        Interfejs.Message successMessage = new Interfejs.Message(mainWindowHandler, "Uwaga", $"Wybrany rozkład zawiera komórki które mają błędne formatowanie, lub zawartość jest różna od '', '-' i czasu. Zmień formuły zawierające czasy na typ 'GG:MM' a puste komórki na '-'. Taki błąd zauważyłem w arkuszu {myWorksheet.Name}.");
+                                        successMessage.Owner = mainWindowHandler;
+                                        successMessage.Show();
+                                        successMessage.Topmost = true;
+                                        mainWindowHandler.ClearUI(false);
                                         return false; // cuz its not empty 
                                     }
                                 }
@@ -872,10 +879,17 @@ namespace Parser_GTFS
                                 {
                                     if (scheduleRows.ElementAt(rowNumber) != "-" && scheduleRows.ElementAt(rowNumber) != "")
                                     {
-                                        if(scheduleRows.ElementAt(rowNumber).Length == 19)
+                                        if(scheduleRows.ElementAt(rowNumber).Length == 19) // YYYY.MM.DD HH:MM:SS
                                         {
                                             // last stop time 
                                             tripEndTime = scheduleRows.ElementAt(rowNumber).Remove(0, 11);
+                                            headsign = namesRow.ElementAt(rowNumber);
+                                            break;
+                                        }
+                                        else if (scheduleRows.ElementAt(rowNumber).Length == 5) // HH:MM
+                                        {
+                                            // last stop time 
+                                            tripEndTime = scheduleRows.ElementAt(rowNumber) + ":00";
                                             headsign = namesRow.ElementAt(rowNumber);
                                             break;
                                         }
@@ -891,12 +905,15 @@ namespace Parser_GTFS
                                     {
                                         if(sequence == 0)// pierwszy czas
                                         {
-                                            tripStartTime = scheduleRows.ElementAt(rowNumber).Remove(0,11);
+                                            if (scheduleRows.ElementAt(rowNumber).Length == 19) tripStartTime = scheduleRows.ElementAt(rowNumber).Remove(0, 11); // YYYY.MM.DD HH:MM:SS
+                                            else if (scheduleRows.ElementAt(rowNumber).Length == 5) tripStartTime = scheduleRows.ElementAt(rowNumber) + ":00";// HH:MM
                                             DayPassed= IsTheDayGone(tripStartTime, tripEndTime);
                                         }
                                         if (repeatedStationArrivalDeparture.Count == 0)
                                         {
-                                            string time = scheduleRows.ElementAt(rowNumber).Remove(0, 11);
+                                            string time = null;
+                                            if (scheduleRows.ElementAt(rowNumber).Length == 19) time = scheduleRows.ElementAt(rowNumber).Remove(0, 11); // YYYY.MM.DD HH:MM:SS
+                                            else if (scheduleRows.ElementAt(rowNumber).Length == 5) time = scheduleRows.ElementAt(rowNumber) + ":00";// HH:MM
                                             if (DayPassed) time = DayGoneTimeChanger(time, Int32.Parse(tripStartTime.Remove(2)));
                                             Stop_time stopTimeHandler = new Stop_time(tripID, time, time, sheetStopsIDsTabe[rowNumber], sequence.ToString(), savingPath);
                                             sequence++;
@@ -909,8 +926,18 @@ namespace Parser_GTFS
                                             
                                                 if (rowNumber == rep && (scheduleRows.ElementAt(rowNumber + 1) != "" ) && (scheduleRows.ElementAt(rowNumber + 1) != "-"))
                                                 {
-                                                    string arrivalTime = scheduleRows.ElementAt(rowNumber).Remove(0, 11);
-                                                    string departureTime = scheduleRows.ElementAt(rowNumber + 1).Remove(0, 11);
+                                                    string arrivalTime = null;
+                                                    string departureTime = null;
+                                                    if (scheduleRows.ElementAt(rowNumber).Length == 19)// YYYY.MM.DD HH:MM:SS
+                                                    {
+                                                        arrivalTime = scheduleRows.ElementAt(rowNumber).Remove(0, 11);
+                                                        departureTime = scheduleRows.ElementAt(rowNumber + 1).Remove(0, 11);
+                                                    }
+                                                    else if (scheduleRows.ElementAt(rowNumber).Length == 5)// HH:MM
+                                                    {
+                                                        arrivalTime = scheduleRows.ElementAt(rowNumber) + ":00";
+                                                        departureTime = scheduleRows.ElementAt(rowNumber + 1) + ":00";
+                                                    }
                                                     if (DayPassed) arrivalTime = DayGoneTimeChanger(arrivalTime, Int32.Parse(tripStartTime.Remove(2)));
                                                     if (DayPassed) departureTime = DayGoneTimeChanger(departureTime, Int32.Parse(tripStartTime.Remove(2)));
                                                     Stop_time stopTimeHandler = new Stop_time(tripID, arrivalTime, departureTime, sheetStopsIDsTabe[rowNumber], sequence.ToString(), savingPath);
@@ -922,7 +949,9 @@ namespace Parser_GTFS
                                             }
                                             if (notThisIndex)
                                             {
-                                                string time = scheduleRows.ElementAt(rowNumber).Remove(0, 11); 
+                                                string time = null;
+                                                if (scheduleRows.ElementAt(rowNumber).Length == 19) time = scheduleRows.ElementAt(rowNumber).Remove(0, 11); // YYYY.MM.DD HH:MM:SS
+                                                else if (scheduleRows.ElementAt(rowNumber).Length == 5) time = scheduleRows.ElementAt(rowNumber) + ":00";// HH:MM
                                                 if (DayPassed) time = DayGoneTimeChanger(time, Int32.Parse(tripStartTime.Remove(2)));
                                                 Stop_time stopTimeHandler = new Stop_time(tripID, time, time, sheetStopsIDsTabe[rowNumber], sequence.ToString(), savingPath);
                                                 sequence++;

@@ -35,7 +35,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>G_My.ico</ApplicationIcon>
+    <ApplicationIcon>GTFS.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="CsvHelper, Version=7.0.0.0, Culture=neutral, PublicKeyToken=8c4959082be5c823, processorArchitecture=MSIL">
@@ -158,6 +158,9 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="G_My.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="GTFS.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
